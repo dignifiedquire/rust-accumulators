@@ -9,6 +9,7 @@ use crate::primes::generate_primes;
 use crate::proofs;
 use crate::traits::*;
 
+#[derive(Debug, Clone)]
 pub struct RsaAccumulator {
     lambda: usize,
     /// Generator
@@ -37,7 +38,6 @@ impl RsaAccumulator {
 
 impl StaticAccumulator for RsaAccumulator {
     fn setup(lambda: usize) -> Self {
-        println!("setup({})", lambda);
         // Generate n = p q, |n| = lambda
         // This is a trusted setup, as we do know `p` and `q`, even though
         // we choose not to store them.
@@ -55,29 +55,23 @@ impl StaticAccumulator for RsaAccumulator {
     }
 
     fn add(&mut self, x: &BigUint) {
-        println!("add({})", x);
         // assumes x is already primes
         self.s *= x;
         self.update();
     }
 
     fn mem_wit_create(&self, x: &BigUint) -> BigUint {
-        println!("mem_wit_create({})", x);
-
         let s = self.s.clone() / x;
         self.g.clone().modpow(&s, &self.n)
     }
 
     fn ver_mem(&self, w: &BigUint, x: &BigUint) -> bool {
-        println!("ver_mem({}, {})", w, x);
         w.modpow(x, &self.n) == self.a_t
     }
 }
 
 impl DynamicAccumulator for RsaAccumulator {
     fn del(&mut self, x: &BigUint) -> Option<()> {
-        println!("del({})", x);
-
         let old_s = self.s.clone();
         self.s /= x;
 
@@ -92,8 +86,6 @@ impl DynamicAccumulator for RsaAccumulator {
 
 impl UniversalAccumulator for RsaAccumulator {
     fn non_mem_wit_create(&self, x: &BigUint) -> (BigUint, BigInt) {
-        println!("non_mem_wit_create({})", x);
-
         // s* <- \prod_{s\in S} s
         let s_star = &self.s;
 
@@ -105,7 +97,6 @@ impl UniversalAccumulator for RsaAccumulator {
     }
 
     fn ver_non_mem(&self, w: &(BigUint, BigInt), x: &BigUint) -> bool {
-        println!("ver_non_mem(({}, {}), {})", w.0, w.1, x);
         let (d, b) = w;
 
         // A^b
@@ -120,7 +111,6 @@ impl UniversalAccumulator for RsaAccumulator {
 
 impl BatchedAccumulator for RsaAccumulator {
     fn batch_add(&mut self, xs: &[BigUint]) -> BigUint {
-        println!("batch_add({:?})", xs);
         let mut x_star = BigUint::one();
         for x in xs {
             x_star *= x
@@ -133,7 +123,6 @@ impl BatchedAccumulator for RsaAccumulator {
     }
 
     fn ver_batch_add(&self, w: &BigUint, a_t: &BigUint, xs: &[BigUint]) -> bool {
-        println!("ver_batch_add({} - {} - {:?})", w, a_t, xs);
         let mut x_star = BigUint::one();
         for x in xs {
             x_star *= x
@@ -143,7 +132,6 @@ impl BatchedAccumulator for RsaAccumulator {
     }
 
     fn batch_del(&mut self, pairs: &[(BigUint, BigUint)]) -> Option<BigUint> {
-        println!("batch_del({:?})", pairs);
         if pairs.is_empty() {
             return None;
         }
@@ -155,7 +143,6 @@ impl BatchedAccumulator for RsaAccumulator {
         let mut new_a_t = w0.clone();
 
         for (xi, wi) in pairs {
-            println!("removing {}", xi);
             new_a_t = shamir_trick(&new_a_t, wi, &x_star, xi, &self.n).unwrap();
             x_star *= xi;
             // for now this is not great, depends on this impl, not on the general design
@@ -168,7 +155,6 @@ impl BatchedAccumulator for RsaAccumulator {
     }
 
     fn ver_batch_del(&self, w: &BigUint, a_t: &BigUint, xs: &[BigUint]) -> bool {
-        println!("ver_batch_del({} - {} - {:?})", w, a_t, xs);
         let mut x_star = BigUint::one();
         for x in xs {
             x_star *= x
@@ -191,6 +177,74 @@ impl BatchedAccumulator for RsaAccumulator {
 
     fn create_all_mem_wit(&self, s: &[BigUint]) -> Vec<BigUint> {
         root_factor(&self.g, &s, &self.n)
+    }
+
+    fn agg_mem_wit(
+        &self,
+        w_x: &BigUint,
+        w_y: &BigUint,
+        x: &BigUint,
+        y: &BigUint,
+    ) -> (BigUint, BigUint) {
+        // TODO: check this matches, sth is not quite right in the paper here
+        let w_xy = shamir_trick(w_x, w_y, x, y, &self.n).unwrap();
+        let xy = x.clone() * y;
+
+        debug_assert!(
+            w_xy.modpow(&xy, &self.n) == self.a_t,
+            "invalid shamir trick"
+        );
+
+        let pi = proofs::ni_poe_prove(&xy, &w_xy, &self.a_t, &self.n);
+
+        (w_xy, pi)
+    }
+
+    fn ver_agg_mem_wit(&self, w_xy: &BigUint, pi: &BigUint, x: &BigUint, y: &BigUint) -> bool {
+        let xy = x.clone() * y;
+        proofs::ni_poe_verify(&xy, w_xy, &self.a_t, pi, &self.n)
+    }
+
+    fn mem_wit_create_star(&self, x: &BigUint) -> (BigUint, BigUint) {
+        let w_x = self.mem_wit_create(x);
+        let p = proofs::ni_poe_prove(x, &w_x, &self.a_t, &self.n);
+
+        (w_x, p)
+    }
+
+    fn ver_mem_wit_star(&self, w_x: &BigUint, p: &BigUint, x: &BigUint) -> bool {
+        proofs::ni_poe_verify(x, w_x, &self.a_t, p, &self.n)
+    }
+
+    fn mem_wit_x(
+        &self,
+        _other: &BigUint,
+        w_x: &BigUint,
+        w_y: &BigUint,
+        _x: &BigUint,
+        _y: &BigUint,
+    ) -> BigUint {
+        (w_x * w_y).mod_floor(&self.n)
+    }
+
+    fn ver_mem_wit_x(&self, other: &BigUint, pi: &BigUint, x: &BigUint, y: &BigUint) -> bool {
+        // assert x and y are coprime
+        let (q, _, _) = extended_gcd(x, y);
+        if !q.is_one() {
+            return false;
+        }
+
+        // A_1^y
+        let rhs_a = self.a_t.modpow(y, &self.n);
+        // A_2^x
+        let rhs_b = other.modpow(x, &self.n);
+
+        // A_1^y * A_2^x
+        let rhs = (rhs_a * rhs_b).mod_floor(&self.n);
+        // pi^{x * y}
+        let lhs = pi.modpow(&(x.clone() * y), &self.n);
+
+        lhs == rhs
     }
 }
 
@@ -390,6 +444,73 @@ mod tests {
             let w = acc.batch_del(&pairs[..]).unwrap();
 
             assert!(acc.ver_batch_del(&w, &a_t, &s[..3]), "ver_batch_del failed");
+        }
+    }
+
+    #[test]
+    fn test_aggregation() {
+        let mut rng = thread_rng();
+
+        for _ in 0..10 {
+            let lambda = 256; // insecure, but faster tests
+            let mut acc = RsaAccumulator::setup(lambda);
+
+            // regular add
+            let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
+
+            for x in &xs {
+                acc.add(x);
+            }
+
+            // AggMemWit
+            {
+                let x = &xs[0];
+                let y = &xs[1];
+                let w_x = acc.mem_wit_create(x);
+                let w_y = acc.mem_wit_create(y);
+
+                let (w_xy, p_wxy) = acc.agg_mem_wit(&w_x, &w_y, x, y);
+
+                assert!(
+                    acc.ver_agg_mem_wit(&w_xy, &p_wxy, x, y),
+                    "invalid agg_mem_wit proof"
+                );
+            }
+
+            // MemWitCreate*
+            {
+                let x = &xs[0];
+                let (w_x, pi) = acc.mem_wit_create_star(x);
+                assert!(
+                    acc.ver_mem_wit_star(&w_x, &pi, x),
+                    "invalid mem_wit_create_star proof"
+                );
+            }
+
+            // MemWitX
+            {
+                let mut acc = RsaAccumulator::setup(lambda);
+                let mut other = acc.clone();
+                let x = rng.gen_prime(128);
+                let y = rng.gen_prime(128);
+
+                assert!(extended_gcd(&x, &y).0.is_one(), "x, y must be coprime");
+
+                acc.add(&x);
+                other.add(&y);
+
+                let w_x = acc.mem_wit_create(&x);
+                let w_y = other.mem_wit_create(&y);
+
+                assert!(acc.ver_mem(&w_x, &x));
+                assert!(other.ver_mem(&w_y, &y));
+
+                let w_xy = acc.mem_wit_x(other.state(), &w_x, &w_y, &x, &y);
+                assert!(
+                    acc.ver_mem_wit_x(other.state(), &w_xy, &x, &y),
+                    "invalid ver_mem_wit_x witness"
+                );
+            }
         }
     }
 }

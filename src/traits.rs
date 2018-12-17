@@ -61,4 +61,35 @@ pub trait BatchedAccumulator: StaticAccumulator {
     ///
     /// Note: This is not explicitly defined in the paper, but here for convenience.
     fn ver_batch_del(&self, w: &BigUint, a_t: &BigUint, xs: &[BigUint]) -> bool;
+
+    /// Aggregate two membership wittnesses, from the same accumulator.
+    fn agg_mem_wit(
+        &self,
+        w_x: &BigUint,
+        w_y: &BigUint,
+        x: &BigUint,
+        y: &BigUint,
+    ) -> (BigUint, BigUint);
+
+    /// Verify an aggregated membership wittness.
+    fn ver_agg_mem_wit(&self, w_xy: &BigUint, pi: &BigUint, x: &BigUint, y: &BigUint) -> bool;
+
+    /// Create a membership wittness for `x` and a NI-PoE for it.
+    fn mem_wit_create_star(&self, x: &BigUint) -> (BigUint, BigUint);
+
+    /// Verify a membership wittness with a NI-PoE.
+    fn ver_mem_wit_star(&self, w_x: &BigUint, p: &BigUint, x: &BigUint) -> bool;
+
+    /// Aggregate two membership witness, from different accumulators.
+    fn mem_wit_x(
+        &self,
+        other: &BigUint,
+        w_x: &BigUint,
+        w_y: &BigUint,
+        x: &BigUint,
+        y: &BigUint,
+    ) -> BigUint;
+
+    /// Verify aggregated membership witness.
+    fn ver_mem_wit_x(&self, other: &BigUint, pi: &BigUint, x: &BigUint, y: &BigUint) -> bool;
 }

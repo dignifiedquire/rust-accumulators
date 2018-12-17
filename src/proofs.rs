@@ -20,10 +20,6 @@ pub fn ni_poe_prove(x: &BigUint, u: &BigUint, w: &BigUint, n: &BigUint) -> BigUi
     // q <- floor(x/l)
     let q = x.div_floor(&l);
 
-    // r <- x mod l
-    // this is not used, why do we calculate it?
-    // let r = x.mod_floor(&l);
-
     // Q <- u^q
     u.modpow(&q, n)
 }
