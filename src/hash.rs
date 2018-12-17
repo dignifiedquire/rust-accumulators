@@ -4,12 +4,13 @@ use num_bigint::BigUint;
 use rsa::prime::probably_prime;
 
 /// Hash the given numbers to a prime number.
+/// Currently uses only 128bits.
 pub fn hash_prime<O: ArrayLength<u8>, D: Digest<OutputSize = O>>(input: &[u8]) -> BigUint {
-    let mut y = BigUint::from_bytes_be(&D::digest(input)[..]);
+    let mut y = BigUint::from_bytes_be(&D::digest(input)[..16]);
 
-    // TODO: this primality test might not be good enough
+    // TODO: verify this is the right level of primality testing
     while !probably_prime(&y, 20) {
-        y = BigUint::from_bytes_be(&D::digest(&y.to_bytes_be())[..]);
+        y = BigUint::from_bytes_be(&D::digest(&y.to_bytes_be())[..16]);
     }
 
     y
