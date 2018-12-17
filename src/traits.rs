@@ -78,7 +78,7 @@ pub trait BatchedAccumulator: StaticAccumulator {
     fn mem_wit_create_star(&self, x: &BigUint) -> (BigUint, BigUint);
 
     /// Verify a membership wittness with a NI-PoE.
-    fn ver_mem_wit_star(&self, w_x: &BigUint, p: &BigUint, x: &BigUint) -> bool;
+    fn ver_mem_star(&self, w_x: &BigUint, p: &BigUint, x: &BigUint) -> bool;
 
     /// Aggregate two membership witness, from different accumulators.
     fn mem_wit_x(
@@ -91,5 +91,18 @@ pub trait BatchedAccumulator: StaticAccumulator {
     ) -> BigUint;
 
     /// Verify aggregated membership witness.
-    fn ver_mem_wit_x(&self, other: &BigUint, pi: &BigUint, x: &BigUint, y: &BigUint) -> bool;
+    fn ver_mem_x(&self, other: &BigUint, pi: &BigUint, x: &BigUint, y: &BigUint) -> bool;
+
+    /// Efficient non membership proof.
+    fn non_mem_wit_create_star(
+        &self,
+        x: &BigUint,
+    ) -> (BigUint, BigUint, (BigUint, BigUint, BigInt), BigUint);
+
+    /// Verify non membership proof.
+    fn ver_non_mem_star(
+        &self,
+        x: &BigUint,
+        pi: &(BigUint, BigUint, (BigUint, BigUint, BigInt), BigUint),
+    ) -> bool;
 }

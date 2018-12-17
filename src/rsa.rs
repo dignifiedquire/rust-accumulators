@@ -2,7 +2,7 @@ use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 use num_traits::One;
 use rand::OsRng;
-use rsa::math::extended_gcd;
+use rsa::math::{extended_gcd, ModInverse};
 
 use crate::math::{modpow_uint_int, root_factor, shamir_trick};
 use crate::primes::generate_primes;
@@ -212,7 +212,7 @@ impl BatchedAccumulator for RsaAccumulator {
         (w_x, p)
     }
 
-    fn ver_mem_wit_star(&self, w_x: &BigUint, p: &BigUint, x: &BigUint) -> bool {
+    fn ver_mem_star(&self, w_x: &BigUint, p: &BigUint, x: &BigUint) -> bool {
         proofs::ni_poe_verify(x, w_x, &self.a_t, p, &self.n)
     }
 
@@ -227,7 +227,7 @@ impl BatchedAccumulator for RsaAccumulator {
         (w_x * w_y).mod_floor(&self.n)
     }
 
-    fn ver_mem_wit_x(&self, other: &BigUint, pi: &BigUint, x: &BigUint, y: &BigUint) -> bool {
+    fn ver_mem_x(&self, other: &BigUint, pi: &BigUint, x: &BigUint, y: &BigUint) -> bool {
         // assert x and y are coprime
         let (q, _, _) = extended_gcd(x, y);
         if !q.is_one() {
@@ -245,6 +245,54 @@ impl BatchedAccumulator for RsaAccumulator {
         let lhs = pi.modpow(&(x.clone() * y), &self.n);
 
         lhs == rhs
+    }
+
+    fn non_mem_wit_create_star(
+        &self,
+        x: &BigUint,
+    ) -> (BigUint, BigUint, (BigUint, BigUint, BigInt), BigUint) {
+        // a, b <- Bezout(x, s_star)
+        let (_, a, b) = extended_gcd(x, &self.s);
+
+        // d <- g^a
+        let d = modpow_uint_int(&self.g, &a, &self.n).expect("invalid state");
+        // v <- A^b
+        let v = modpow_uint_int(&self.a_t, &b, &self.n).expect("invalid state");
+
+        // pi_d <- NI-PoKE2(A, v, b)
+        let pi_d = proofs::ni_poke2_prove(b, &self.a_t, &v, &self.n);
+
+        // pi_g <- NI-PoE(x, d, g * v^-1)
+        let w =
+            (&self.g * v.clone().mod_inverse(&self.n).expect("invalid state")).mod_floor(&self.n);
+        let pi_g = proofs::ni_poe_prove(x, &d, &w, &self.n);
+
+        // return {d, v, pi_d, pi_g}
+        (d, v, pi_d, pi_g)
+    }
+
+    fn ver_non_mem_star(
+        &self,
+        x: &BigUint,
+        pi: &(BigUint, BigUint, (BigUint, BigUint, BigInt), BigUint),
+    ) -> bool {
+        let (d, v, pi_d, pi_g) = pi;
+
+        // verify NI-PoKE2
+        if !proofs::ni_poke2_verify(&self.a_t, &v, pi_d, &self.n) {
+            println!("invalid nipoke2");
+            return false;
+        }
+
+        // verify NI-PoE
+        let w =
+            (&self.g * v.clone().mod_inverse(&self.n).expect("invalid state")).mod_floor(&self.n);
+        if !proofs::ni_poe_verify(x, d, &w, pi_g, &self.n) {
+            println!("invalid nipoe");
+            return false;
+        }
+
+        true
     }
 }
 
@@ -482,7 +530,7 @@ mod tests {
                 let x = &xs[0];
                 let (w_x, pi) = acc.mem_wit_create_star(x);
                 assert!(
-                    acc.ver_mem_wit_star(&w_x, &pi, x),
+                    acc.ver_mem_star(&w_x, &pi, x),
                     "invalid mem_wit_create_star proof"
                 );
             }
@@ -507,10 +555,32 @@ mod tests {
 
                 let w_xy = acc.mem_wit_x(other.state(), &w_x, &w_y, &x, &y);
                 assert!(
-                    acc.ver_mem_wit_x(other.state(), &w_xy, &x, &y),
-                    "invalid ver_mem_wit_x witness"
+                    acc.ver_mem_x(other.state(), &w_xy, &x, &y),
+                    "invalid ver_mem_x witness"
                 );
             }
+        }
+    }
+
+    #[test]
+    fn test_aggregation_non_mem_star() {
+        let mut rng = thread_rng();
+
+        for _ in 0..10 {
+            let lambda = 256; // insecure, but faster tests
+            let mut acc = RsaAccumulator::setup(lambda);
+
+            // regular add
+            let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
+
+            for x in &xs {
+                acc.add(x);
+            }
+
+            let x = rng.gen_prime(lambda);
+            let pi = acc.non_mem_wit_create_star(&x);
+
+            assert!(acc.ver_non_mem_star(&x, &pi), "invalid ver_non_mem_star");
         }
     }
 }
