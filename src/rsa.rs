@@ -1,5 +1,4 @@
 use num_bigint::{BigInt, BigUint};
-use num_integer::Integer;
 use num_traits::One;
 use rand::OsRng;
 use rsa::math::{extended_gcd, ModInverse};
@@ -105,7 +104,7 @@ impl UniversalAccumulator for RsaAccumulator {
         let d_x = d.modpow(x, &self.n);
 
         // d^x A^b == g
-        (d_x * &a_b).mod_floor(&self.n) == self.g
+        (d_x * &a_b) % &self.n == self.g
     }
 }
 
@@ -224,7 +223,7 @@ impl BatchedAccumulator for RsaAccumulator {
         _x: &BigUint,
         _y: &BigUint,
     ) -> BigUint {
-        (w_x * w_y).mod_floor(&self.n)
+        (w_x * w_y) % &self.n
     }
 
     fn ver_mem_x(&self, other: &BigUint, pi: &BigUint, x: &BigUint, y: &BigUint) -> bool {
@@ -240,7 +239,7 @@ impl BatchedAccumulator for RsaAccumulator {
         let rhs_b = other.modpow(x, &self.n);
 
         // A_1^y * A_2^x
-        let rhs = (rhs_a * rhs_b).mod_floor(&self.n);
+        let rhs = (rhs_a * rhs_b) % &self.n;
         // pi^{x * y}
         let lhs = pi.modpow(&(x.clone() * y), &self.n);
 
@@ -251,21 +250,25 @@ impl BatchedAccumulator for RsaAccumulator {
         &self,
         x: &BigUint,
     ) -> (BigUint, BigUint, (BigUint, BigUint, BigInt), BigUint) {
+        let g = &self.g;
+        let n = &self.n;
+
         // a, b <- Bezout(x, s_star)
         let (_, a, b) = extended_gcd(x, &self.s);
 
         // d <- g^a
-        let d = modpow_uint_int(&self.g, &a, &self.n).expect("invalid state");
+        let d = modpow_uint_int(g, &a, n).expect("invalid state");
         // v <- A^b
-        let v = modpow_uint_int(&self.a_t, &b, &self.n).expect("invalid state");
+        let v = modpow_uint_int(&self.a_t, &b, n).expect("invalid state");
 
-        // pi_d <- NI-PoKE2(A, v, b)
-        let pi_d = proofs::ni_poke2_prove(b, &self.a_t, &v, &self.n);
+        // pi_d <- NI-PoKE2(b, A, v)
+        let pi_d = proofs::ni_poke2_prove(b, &self.a_t, &v, n);
+
+        // k <- g * v^-1
+        let k = (g * v.clone().mod_inverse(n).expect("invalid state")) % n;
 
         // pi_g <- NI-PoE(x, d, g * v^-1)
-        let w =
-            (&self.g * v.clone().mod_inverse(&self.n).expect("invalid state")).mod_floor(&self.n);
-        let pi_g = proofs::ni_poe_prove(x, &d, &w, &self.n);
+        let pi_g = proofs::ni_poe_prove(x, &d, &k, n);
 
         // return {d, v, pi_d, pi_g}
         (d, v, pi_d, pi_g)
@@ -276,19 +279,20 @@ impl BatchedAccumulator for RsaAccumulator {
         x: &BigUint,
         pi: &(BigUint, BigUint, (BigUint, BigUint, BigInt), BigUint),
     ) -> bool {
+        let g = &self.g;
+        let n = &self.n;
+
         let (d, v, pi_d, pi_g) = pi;
 
         // verify NI-PoKE2
-        if !proofs::ni_poke2_verify(&self.a_t, &v, pi_d, &self.n) {
-            println!("invalid nipoke2");
+        if !proofs::ni_poke2_verify(&self.a_t, &v, pi_d, n) {
             return false;
         }
 
         // verify NI-PoE
-        let w =
-            (&self.g * v.clone().mod_inverse(&self.n).expect("invalid state")).mod_floor(&self.n);
-        if !proofs::ni_poe_verify(x, d, &w, pi_g, &self.n) {
-            println!("invalid nipoe");
+        let k = (g * v.clone().mod_inverse(n).expect("invalid state")) % n;
+
+        if !proofs::ni_poe_verify(x, d, &k, pi_g, n) {
             return false;
         }
 
@@ -301,7 +305,6 @@ mod tests {
     use super::*;
 
     use num_bigint::Sign;
-    use num_integer::Integer;
     use num_traits::FromPrimitive;
     use rand::{thread_rng, SeedableRng, XorShiftRng};
     use rsa::RandPrime;
@@ -436,7 +439,7 @@ mod tests {
         assert_eq!(d_x, res);
 
         // d^x A^b == g
-        let lhs = (&d_x * &a_b).mod_floor(&n);
+        let lhs = (&d_x * &a_b) % &n;
         println!("> {} = {} * {} mod {}", &lhs, &d_x, &a_b, &n);
         assert_eq!(lhs, g);
     }

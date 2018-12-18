@@ -39,10 +39,10 @@ pub fn ni_poe_verify(x: &BigUint, u: &BigUint, w: &BigUint, q: &BigUint, n: &Big
     let l = hash_prime::<_, Blake2b>(&to_hash);
 
     // r <- x mod l
-    let r = x.mod_floor(&l);
+    let r = x % &l;
 
     // Q^l u^r == w
-    &(q.modpow(&l, &n) * &u.modpow(&r, &n)).mod_floor(&n) == w
+    &((q.modpow(&l, &n) * &u.modpow(&r, &n)) % n) == w
 }
 
 /// NI-PoKE2 Prove
@@ -74,10 +74,8 @@ pub fn ni_poke2_prove(
     let alpha = BigUint::from_bytes_be(&Blake2b::digest(&to_hash)[..]);
 
     // q <- floor(x/l)
-    let q = x.div_floor(&l);
-
     // r <- x % l
-    let r = x.mod_floor(&l);
+    let (q, r) = x.div_rem(&l);
 
     // Q <- (ug^alpha)^q
     let q_big = modpow_uint_int(&(u * &g.modpow(&alpha, n)), &q, n).expect("invalid state");
@@ -111,14 +109,14 @@ pub fn ni_poke2_verify(
     let alpha = BigUint::from_bytes_be(&Blake2b::digest(&to_hash)[..]);
 
     // Q^l(ug^alpha)^r
-    let lhs: BigInt = (q_big.modpow(&l, n)
+    let lhs: BigInt = ((q_big.modpow(&l, n)
         * modpow_uint_int(&(u * &g.modpow(&alpha, n)), &r, n).expect("invalid state"))
-    .mod_floor(n)
-    .into();
+        % n)
+        .into();
 
     // wz^alpha
     let z_alpha = z.modpow(&alpha, n);
-    let rhs: BigInt = (w * z_alpha).mod_floor(&n.clone()).into();
+    let rhs: BigInt = ((w * z_alpha) % n).into();
 
     lhs == rhs
 }
