@@ -211,8 +211,8 @@ impl BatchedAccumulator for RsaAccumulator {
         (w_x, p)
     }
 
-    fn ver_mem_star(&self, w_x: &BigUint, p: &BigUint, x: &BigUint) -> bool {
-        proofs::ni_poe_verify(x, w_x, &self.a_t, p, &self.n)
+    fn ver_mem_star(&self, x: &BigUint, pi: &(BigUint, BigUint)) -> bool {
+        proofs::ni_poe_verify(x, &pi.0, &self.a_t, &pi.1, &self.n)
     }
 
     fn mem_wit_x(
@@ -531,9 +531,9 @@ mod tests {
             // MemWitCreate*
             {
                 let x = &xs[0];
-                let (w_x, pi) = acc.mem_wit_create_star(x);
+                let pi = acc.mem_wit_create_star(x);
                 assert!(
-                    acc.ver_mem_star(&w_x, &pi, x),
+                    acc.ver_mem_star(x, &pi),
                     "invalid mem_wit_create_star proof"
                 );
             }

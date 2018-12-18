@@ -78,7 +78,7 @@ pub trait BatchedAccumulator: StaticAccumulator {
     fn mem_wit_create_star(&self, x: &BigUint) -> (BigUint, BigUint);
 
     /// Verify a membership wittness with a NI-PoE.
-    fn ver_mem_star(&self, w_x: &BigUint, p: &BigUint, x: &BigUint) -> bool;
+    fn ver_mem_star(&self, x: &BigUint, pi: &(BigUint, BigUint)) -> bool;
 
     /// Aggregate two membership witness, from different accumulators.
     fn mem_wit_x(
@@ -105,4 +105,27 @@ pub trait BatchedAccumulator: StaticAccumulator {
         x: &BigUint,
         pi: &(BigUint, BigUint, (BigUint, BigUint, BigInt), BigUint),
     ) -> bool;
+}
+
+pub trait StaticVectorCommitment {
+    type Domain;
+    type Commitment;
+    type BatchCommitment;
+
+    fn setup(lambda: usize, n: usize) -> Self;
+
+    fn commit(&mut self, m: &[Self::Domain]);
+
+    fn open(&self, b: &Self::Domain, i: usize) -> Self::Commitment;
+
+    fn verify(&self, b: &Self::Domain, i: usize, pi: &Self::Commitment) -> bool;
+
+    fn batch_open(&self, b: &[&Self::Domain], i: &[usize]) -> Self::BatchCommitment;
+
+    fn batch_verify(&self, b: &[&Self::Domain], i: &[usize], pi: &Self::BatchCommitment) -> bool;
+}
+
+pub trait DynamicVectorCommitment: StaticVectorCommitment {
+    /// Changes the value at position `i`, from `b_prime`  to `b`.
+    fn update(&mut self, b: &Self::Domain, b_prime: &Self::Domain, i: usize);
 }
