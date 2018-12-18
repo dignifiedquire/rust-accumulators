@@ -39,7 +39,7 @@ pub fn ni_poe_verify(x: &BigUint, u: &BigUint, w: &BigUint, q: &BigUint, n: &Big
     let l = hash_prime::<_, Blake2b>(&to_hash);
 
     // r <- x mod l
-    let r = x % &l;
+    let r = x.mod_floor(&l);
 
     // Q^l u^r == w
     &((q.modpow(&l, &n) * &u.modpow(&r, &n)) % n) == w
@@ -126,22 +126,31 @@ mod tests {
     use super::*;
 
     use num_bigint::RandBigInt;
+    use num_traits::One;
     use rand::thread_rng;
     use rsa::RandPrime;
 
     #[test]
     fn test_ni_poe() {
         let mut rng = thread_rng();
+        for _ in 1..4 {
+            for j in 1..10 {
+                for k in 1..4 {
+                    let p = rng.gen_prime(128);
+                    let q = rng.gen_prime(128);
+                    let n = p * q;
 
-        for _ in 0..10 {
-            let n = rng.gen_biguint(128);
+                    let mut x = BigUint::one();
+                    for _ in 0..j {
+                        x *= rng.gen_prime(256);
+                    }
+                    let u = rng.gen_biguint(k * 64);
+                    let w = u.modpow(&x, &n);
 
-            let x = rng.gen_prime(512);
-            let u = rng.gen_prime(128);
-            let w = u.modpow(&x, &n);
-
-            let q = ni_poe_prove(&x, &u, &w, &n);
-            assert!(ni_poe_verify(&x, &u, &w, &q, &n))
+                    let q = ni_poe_prove(&x, &u, &w, &n);
+                    assert!(ni_poe_verify(&x, &u, &w, &q, &n))
+                }
+            }
         }
     }
 
