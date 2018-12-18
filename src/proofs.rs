@@ -29,8 +29,6 @@ pub fn ni_poe_prove(x: &BigUint, u: &BigUint, w: &BigUint, n: &BigUint) -> BigUi
 /// Assumes `u^x = w`
 /// All operations are `mod n`.
 pub fn ni_poe_verify(x: &BigUint, u: &BigUint, w: &BigUint, q: &BigUint, n: &BigUint) -> bool {
-    debug_assert!(&u.modpow(x, n) == w, "invalid input");
-
     // l <- H_prime(x, u, w)
     let mut to_hash = x.to_bytes_be();
     to_hash.extend(&u.to_bytes_be());

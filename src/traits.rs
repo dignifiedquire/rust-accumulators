@@ -1,9 +1,10 @@
 use num_bigint::{BigInt, BigUint};
+use rand::Rng;
 
 pub trait StaticAccumulator {
     /// Setup generates a group of unknown order and initializes the group
     /// with a generator of that group.
-    fn setup(lambda: usize) -> Self;
+    fn setup(rng: &mut impl Rng, lambda: usize) -> Self;
 
     /// Update the accumulator.
     fn add(&mut self, x: &BigUint);
@@ -112,7 +113,7 @@ pub trait StaticVectorCommitment {
     type Commitment;
     type BatchCommitment;
 
-    fn setup(lambda: usize, n: usize) -> Self;
+    fn setup(rng: &mut impl Rng, lambda: usize, n: usize) -> Self;
 
     fn commit(&mut self, m: &[Self::Domain]);
 
@@ -120,9 +121,9 @@ pub trait StaticVectorCommitment {
 
     fn verify(&self, b: &Self::Domain, i: usize, pi: &Self::Commitment) -> bool;
 
-    fn batch_open(&self, b: &[&Self::Domain], i: &[usize]) -> Self::BatchCommitment;
+    fn batch_open(&self, b: &[Self::Domain], i: &[usize]) -> Self::BatchCommitment;
 
-    fn batch_verify(&self, b: &[&Self::Domain], i: &[usize], pi: &Self::BatchCommitment) -> bool;
+    fn batch_verify(&self, b: &[Self::Domain], i: &[usize], pi: &Self::BatchCommitment) -> bool;
 }
 
 pub trait DynamicVectorCommitment: StaticVectorCommitment {

@@ -1,6 +1,7 @@
 use num_bigint::{BigInt, BigUint};
-use num_traits::One;
-use rand::OsRng;
+use num_integer::Integer;
+use num_traits::{One, Zero};
+use rand::Rng;
 use rsa::math::{extended_gcd, ModInverse};
 
 use crate::math::{modpow_uint_int, root_factor, shamir_trick};
@@ -24,11 +25,6 @@ pub struct RsaAccumulator {
 }
 
 impl RsaAccumulator {
-    /// Internal method to recalculate `a_t`, based on the current of `s`.
-    fn update(&mut self) {
-        self.a_t = self.g.clone().modpow(&self.s, &self.n);
-    }
-
     /// Returns the current public state.
     pub fn state(&self) -> &BigUint {
         &self.a_t
@@ -36,13 +32,12 @@ impl RsaAccumulator {
 }
 
 impl StaticAccumulator for RsaAccumulator {
-    fn setup(lambda: usize) -> Self {
+    fn setup(rng: &mut impl Rng, lambda: usize) -> Self {
         // Generate n = p q, |n| = lambda
         // This is a trusted setup, as we do know `p` and `q`, even though
         // we choose not to store them.
 
-        let mut rng = OsRng::new().unwrap();
-        let (n, _, _, g) = generate_primes(&mut rng, lambda).unwrap();
+        let (n, _, _, g) = generate_primes(rng, lambda).unwrap();
 
         RsaAccumulator {
             lambda,
@@ -53,17 +48,32 @@ impl StaticAccumulator for RsaAccumulator {
         }
     }
 
+    #[inline]
     fn add(&mut self, x: &BigUint) {
-        // assumes x is already primes
+        debug_assert!(
+            self.g.clone().modpow(&self.s, &self.n) == self.a_t,
+            "invalid state - pre add"
+        );
+
+        // assumes x is already a prime
         self.s *= x;
-        self.update();
+        self.a_t = self.a_t.modpow(x, &self.n);
     }
 
+    #[inline]
     fn mem_wit_create(&self, x: &BigUint) -> BigUint {
-        let s = self.s.clone() / x;
+        debug_assert!(
+            self.g.clone().modpow(&self.s, &self.n) == self.a_t,
+            "invalid state"
+        );
+
+        let (s, r) = self.s.clone().div_rem(x);
+        debug_assert!(r.is_zero(), "x was not a valid member of s");
+
         self.g.clone().modpow(&s, &self.n)
     }
 
+    #[inline]
     fn ver_mem(&self, w: &BigUint, x: &BigUint) -> bool {
         w.modpow(x, &self.n) == self.a_t
     }
@@ -78,7 +88,7 @@ impl DynamicAccumulator for RsaAccumulator {
             return None;
         }
 
-        self.update();
+        self.a_t = self.g.clone().modpow(&self.s, &self.n);
         Some(())
     }
 }
@@ -112,11 +122,12 @@ impl BatchedAccumulator for RsaAccumulator {
     fn batch_add(&mut self, xs: &[BigUint]) -> BigUint {
         let mut x_star = BigUint::one();
         for x in xs {
-            x_star *= x
+            x_star *= x;
+            self.s *= x;
         }
 
         let a_t = self.a_t.clone();
-        self.add(&x_star);
+        self.a_t = self.a_t.modpow(&x_star, &self.n);
 
         proofs::ni_poe_prove(&x_star, &a_t, &self.a_t, &self.n)
     }
@@ -174,6 +185,7 @@ impl BatchedAccumulator for RsaAccumulator {
         Some(())
     }
 
+    #[inline]
     fn create_all_mem_wit(&self, s: &[BigUint]) -> Vec<BigUint> {
         root_factor(&self.g, &s, &self.n)
     }
@@ -206,6 +218,7 @@ impl BatchedAccumulator for RsaAccumulator {
 
     fn mem_wit_create_star(&self, x: &BigUint) -> (BigUint, BigUint) {
         let w_x = self.mem_wit_create(x);
+        debug_assert!(self.a_t != w_x, "{} was not a member", x);
         let p = proofs::ni_poe_prove(x, &w_x, &self.a_t, &self.n);
 
         (w_x, p)
@@ -306,16 +319,16 @@ mod tests {
 
     use num_bigint::Sign;
     use num_traits::FromPrimitive;
-    use rand::{thread_rng, SeedableRng, XorShiftRng};
+    use rand::{SeedableRng, XorShiftRng};
     use rsa::RandPrime;
 
     #[test]
     fn test_static() {
-        let mut rng = thread_rng();
+        let rng = &mut XorShiftRng::from_seed([0u8; 16]);
 
         for _ in 0..100 {
             let lambda = 256; // insecure, but faster tests
-            let mut acc = RsaAccumulator::setup(lambda);
+            let mut acc = RsaAccumulator::setup(rng, lambda);
 
             let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
 
@@ -332,11 +345,11 @@ mod tests {
 
     #[test]
     fn test_dynamic() {
-        let mut rng = thread_rng();
+        let rng = &mut XorShiftRng::from_seed([0u8; 16]);
 
         for _ in 0..20 {
             let lambda = 256; // insecure, but faster tests
-            let mut acc = RsaAccumulator::setup(lambda);
+            let mut acc = RsaAccumulator::setup(rng, lambda);
 
             let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
 
@@ -364,11 +377,11 @@ mod tests {
 
     #[test]
     fn test_universal() {
-        let mut rng = thread_rng();
+        let rng = &mut XorShiftRng::from_seed([0u8; 16]);
 
         for _ in 0..20 {
             let lambda = 256; // insecure, but faster tests
-            let mut acc = RsaAccumulator::setup(lambda);
+            let mut acc = RsaAccumulator::setup(rng, lambda);
 
             let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
 
@@ -444,67 +457,102 @@ mod tests {
         assert_eq!(lhs, g);
     }
 
+    fn test_batch_add_size(size: usize) {
+        println!("batch_add_size {}", size);
+        let rng = &mut XorShiftRng::from_seed([0u8; 16]);
+
+        let lambda = 256; // insecure, but faster tests
+        let mut acc = RsaAccumulator::setup(rng, lambda);
+
+        // regular add
+        let x0 = rng.gen_prime(lambda);
+        acc.add(&x0);
+
+        // batch add
+        let a_t = acc.state().clone();
+        let xs = (0..size).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
+        let w = acc.batch_add(&xs);
+
+        // verify batch add
+        assert!(acc.ver_batch_add(&w, &a_t, &xs), "ver_batch_add failed");
+
+        // delete with member
+        let x = &xs[2];
+        let w = acc.mem_wit_create(x);
+        assert!(acc.ver_mem(&w, x), "failed to verify valid witness");
+
+        acc.del_w_mem(&w, x).unwrap();
+        assert!(
+            !acc.ver_mem(&w, x),
+            "witness verified, even though it was deleted"
+        );
+
+        // create all members witness
+        // current state contains xs\x + x0
+        let mut s = vec![x0.clone(), xs[0].clone(), xs[1].clone()];
+        s.extend(xs.iter().skip(3).cloned());
+
+        let ws = acc.create_all_mem_wit(&s);
+
+        for (w, x) in ws.iter().zip(s.iter()) {
+            assert!(acc.ver_mem(w, x));
+        }
+
+        // batch delete
+        let a_t = acc.state().clone();
+        let pairs = s
+            .iter()
+            .cloned()
+            .zip(ws.iter().cloned())
+            .take(3)
+            .collect::<Vec<_>>();
+        let w = acc.batch_del(&pairs[..]).unwrap();
+
+        assert!(acc.ver_batch_del(&w, &a_t, &s[..3]), "ver_batch_del failed");
+    }
+
     #[test]
-    fn test_batch() {
-        let mut rng = thread_rng();
-
-        for _ in 0..10 {
-            let lambda = 256; // insecure, but faster tests
-            let mut acc = RsaAccumulator::setup(lambda);
-
-            // regular add
-            let x0 = rng.gen_prime(lambda);
-            acc.add(&x0);
-
-            // batch add
-            let a_t = acc.state().clone();
-            let xs = (0..4).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
-            let w = acc.batch_add(&xs);
-
-            // verify batch add
-            assert!(acc.ver_batch_add(&w, &a_t, &xs), "ver_batch_add failed");
-
-            // delete with member
-            let x = &xs[2];
-            let w = acc.mem_wit_create(x);
-            assert!(acc.ver_mem(&w, x), "failed to verify valid witness");
-
-            acc.del_w_mem(&w, x).unwrap();
-            assert!(
-                !acc.ver_mem(&w, x),
-                "witness verified, even though it was deleted"
-            );
-
-            // create all members witness
-            // current state contains xs\x + x0
-            let s = vec![x0.clone(), xs[0].clone(), xs[1].clone(), xs[3].clone()];
-            let ws = acc.create_all_mem_wit(&s);
-
-            for (w, x) in ws.iter().zip(s.iter()) {
-                assert!(acc.ver_mem(w, x));
-            }
-
-            // batch delete
-            let a_t = acc.state().clone();
-            let pairs = s
-                .iter()
-                .cloned()
-                .zip(ws.iter().cloned())
-                .take(3)
-                .collect::<Vec<_>>();
-            let w = acc.batch_del(&pairs[..]).unwrap();
-
-            assert!(acc.ver_batch_del(&w, &a_t, &s[..3]), "ver_batch_del failed");
+    fn test_batch_add_small() {
+        for i in 4..14 {
+            test_batch_add_size(i)
         }
     }
 
     #[test]
+    fn test_batch_add_large() {
+        let size = 128;
+        let rng = &mut XorShiftRng::from_seed([0u8; 16]);
+        let lambda = 256; // insecure, but faster tests
+        let mut acc = RsaAccumulator::setup(rng, lambda);
+
+        // regular add
+        let x0 = rng.gen_prime(lambda);
+        acc.add(&x0);
+
+        // batch add
+        let a_t = acc.state().clone();
+        let xs = (0..size).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
+        let w = acc.batch_add(&xs);
+
+        // verify batch add
+        assert!(acc.ver_batch_add(&w, &a_t, &xs), "ver_batch_add failed");
+
+        // batch add
+        let a_t = acc.state().clone();
+        let xs = (0..size).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
+        let w = acc.batch_add(&xs);
+
+        // verify batch add
+        assert!(acc.ver_batch_add(&w, &a_t, &xs), "ver_batch_add failed");
+    }
+
+    #[test]
     fn test_aggregation() {
-        let mut rng = thread_rng();
+        let rng = &mut XorShiftRng::from_seed([0u8; 16]);
 
         for _ in 0..10 {
             let lambda = 256; // insecure, but faster tests
-            let mut acc = RsaAccumulator::setup(lambda);
+            let mut acc = RsaAccumulator::setup(rng, lambda);
 
             // regular add
             let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
@@ -530,17 +578,17 @@ mod tests {
 
             // MemWitCreate*
             {
-                let x = &xs[0];
-                let pi = acc.mem_wit_create_star(x);
-                assert!(
-                    acc.ver_mem_star(x, &pi),
-                    "invalid mem_wit_create_star proof"
-                );
+                let pis = (0..5)
+                    .map(|i| acc.mem_wit_create_star(&xs[i]))
+                    .collect::<Vec<_>>();
+                for (pi, x) in pis.iter().zip(&xs) {
+                    assert!(acc.ver_mem_star(x, pi), "invalid mem_wit_create_star proof");
+                }
             }
 
             // MemWitX
             {
-                let mut acc = RsaAccumulator::setup(lambda);
+                let mut acc = RsaAccumulator::setup(rng, lambda);
                 let mut other = acc.clone();
                 let x = rng.gen_prime(128);
                 let y = rng.gen_prime(128);
@@ -567,11 +615,11 @@ mod tests {
 
     #[test]
     fn test_aggregation_non_mem_star() {
-        let mut rng = thread_rng();
+        let rng = &mut XorShiftRng::from_seed([0u8; 16]);
 
         for _ in 0..10 {
             let lambda = 256; // insecure, but faster tests
-            let mut acc = RsaAccumulator::setup(lambda);
+            let mut acc = RsaAccumulator::setup(rng, lambda);
 
             // regular add
             let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();

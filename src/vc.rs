@@ -1,7 +1,8 @@
 use blake2::Blake2b;
 use byteorder::{BigEndian, ByteOrder};
 use num_bigint::{BigInt, BigUint};
-use num_traits::One;
+use num_traits::{One, Zero};
+use rand::Rng;
 
 use crate::hash::hash_prime;
 use crate::traits::*;
@@ -11,6 +12,7 @@ pub struct BinaryVectorCommitment<A: UniversalAccumulator + BatchedAccumulator> 
     lambda: usize,
     n: usize,
     acc: A,
+    pos: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,11 +36,12 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
     type Commitment = Commitment;
     type BatchCommitment = BatchCommitment;
 
-    fn setup(lambda: usize, n: usize) -> Self {
+    fn setup(rng: &mut impl Rng, lambda: usize, n: usize) -> Self {
         BinaryVectorCommitment {
             lambda,
             n,
-            acc: A::setup(lambda),
+            acc: A::setup(rng, lambda),
+            pos: 0,
         }
     }
 
@@ -47,9 +50,10 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
             .iter()
             .enumerate()
             .filter(|(_, &m_i)| m_i)
-            .map(|(i, _)| map_i_to_p_i(i))
+            .map(|(i, _)| map_i_to_p_i(self.pos + i))
             .collect::<Vec<_>>();
 
+        self.pos += m.len();
         self.acc.batch_add(&primes);
     }
 
@@ -80,19 +84,19 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
         }
     }
 
-    fn batch_open(&self, b: &[&Self::Domain], i: &[usize]) -> Self::BatchCommitment {
+    fn batch_open(&self, b: &[Self::Domain], i: &[usize]) -> Self::BatchCommitment {
         assert_eq!(b.len(), i.len());
 
         let ones = b
             .iter()
             .enumerate()
-            .filter(|(_, b_j)| ***b_j)
+            .filter(|(_, b_j)| **b_j)
             .map(|(j, _)| j);
 
         let zeros = b
             .iter()
             .enumerate()
-            .filter(|(_, b_j)| !***b_j)
+            .filter(|(_, b_j)| !*b_j)
             .map(|(j, _)| j);
 
         let mut p_ones = BigUint::one();
@@ -100,30 +104,38 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
             p_ones *= map_i_to_p_i(i[j]);
         }
 
+        let pi_i = if p_ones.is_one() {
+            (BigUint::zero(), BigUint::zero())
+        } else {
+            self.acc.mem_wit_create_star(&p_ones)
+        };
+
         let mut p_zeros = BigUint::one();
         for j in zeros {
             p_zeros *= map_i_to_p_i(i[j]);
         }
 
-        let pi_i = self.acc.mem_wit_create_star(&p_ones);
-        let pi_e = self.acc.non_mem_wit_create_star(&p_zeros);
+        let pi_e = if p_zeros.is_one() {
+            (
+                BigUint::zero(),
+                BigUint::zero(),
+                (BigUint::zero(), BigUint::zero(), BigInt::zero()),
+                BigUint::zero(),
+            )
+        } else {
+            self.acc.non_mem_wit_create_star(&p_zeros)
+        };
 
         BatchCommitment(pi_i, pi_e)
     }
 
-    fn batch_verify(&self, b: &[&Self::Domain], i: &[usize], pi: &Self::BatchCommitment) -> bool {
+    fn batch_verify(&self, b: &[Self::Domain], i: &[usize], pi: &Self::BatchCommitment) -> bool {
         assert_eq!(b.len(), i.len());
 
         let ones = b
             .iter()
             .enumerate()
-            .filter(|(_, b_j)| ***b_j)
-            .map(|(j, _)| j);
-
-        let zeros = b
-            .iter()
-            .enumerate()
-            .filter(|(_, b_j)| !***b_j)
+            .filter(|(_, b_j)| **b_j)
             .map(|(j, _)| j);
 
         let mut p_ones = BigUint::one();
@@ -131,12 +143,26 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
             p_ones *= map_i_to_p_i(i[j]);
         }
 
+        if !p_ones.is_one() && !self.acc.ver_mem_star(&p_ones, &pi.0) {
+            return false;
+        }
+
+        let zeros = b
+            .iter()
+            .enumerate()
+            .filter(|(_, b_j)| !**b_j)
+            .map(|(j, _)| j);
+
         let mut p_zeros = BigUint::one();
         for j in zeros {
             p_zeros *= map_i_to_p_i(i[j]);
         }
 
-        self.acc.ver_mem_star(&p_ones, &pi.0) && self.acc.ver_non_mem_star(&p_zeros, &pi.1)
+        if !p_zeros.is_one() && !self.acc.ver_non_mem_star(&p_zeros, &pi.1) {
+            return false;
+        }
+
+        true
     }
 }
 
@@ -172,9 +198,9 @@ mod tests {
     fn test_binary_vc_basics() {
         let lambda = 128;
         let n = 1024;
-        let rng = &mut XorShiftRng::from_seed([1u8; 16]);
+        let mut rng = &mut XorShiftRng::from_seed([1u8; 16]);
 
-        let mut vc = BinaryVectorCommitment::<RsaAccumulator>::setup(lambda, n);
+        let mut vc = BinaryVectorCommitment::<RsaAccumulator>::setup(&mut rng, lambda, n);
 
         let mut val: Vec<bool> = (0..64).map(|_| rng.gen()).collect();
         // set two bits manually, to make checks easier
@@ -199,16 +225,17 @@ mod tests {
     fn test_binary_vc_batch() {
         let lambda = 128;
         let n = 1024;
-        let rng = &mut XorShiftRng::from_seed([1u8; 16]);
+        let mut rng = &mut XorShiftRng::from_seed([1u8; 16]);
 
-        let mut vc = BinaryVectorCommitment::<RsaAccumulator>::setup(lambda, n);
+        let mut vc = BinaryVectorCommitment::<RsaAccumulator>::setup(&mut rng, lambda, n);
 
         let val: Vec<bool> = (0..64).map(|_| rng.gen()).collect();
         vc.commit(&val);
 
-        let comm = vc.batch_open(&[&val[2], &val[3], &val[9]], &[2, 3, 9]);
+        let committed = vec![val[2].clone(), val[3].clone(), val[9].clone()];
+        let comm = vc.batch_open(&committed, &[2, 3, 9]);
         assert!(
-            vc.batch_verify(&[&val[2], &val[3], &val[9]], &[2, 3, 9], &comm),
+            vc.batch_verify(&committed, &[2, 3, 9], &comm),
             "invalid commitment (bit set)"
         );
     }
@@ -217,9 +244,9 @@ mod tests {
     fn test_binary_vc_update() {
         let lambda = 128;
         let n = 1024;
-        let rng = &mut XorShiftRng::from_seed([1u8; 16]);
+        let mut rng = &mut XorShiftRng::from_seed([1u8; 16]);
 
-        let mut vc = BinaryVectorCommitment::<RsaAccumulator>::setup(lambda, n);
+        let mut vc = BinaryVectorCommitment::<RsaAccumulator>::setup(&mut rng, lambda, n);
 
         let mut val: Vec<bool> = (0..64).map(|_| rng.gen()).collect();
         // set two bits manually, to make checks easier
