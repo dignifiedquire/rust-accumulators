@@ -20,3 +20,11 @@ blake2 = "0.8.0"
 generic-array = "0.12.0"
 byteorder = "1.2.7"
 bitvec = "0.9.0"
+
+
+[dev-dependencies]
+criterion = "0.2"
+
+[[bench]]
+name = "accumulators_benchmarks"
+harness = false
