@@ -2,9 +2,8 @@ use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 use num_traits::{One, Zero};
 use rand::Rng;
-use rsa::math::{extended_gcd, ModInverse};
 
-use crate::math::{modpow_uint_int, root_factor, shamir_trick};
+use crate::math::{modpow_uint_int, root_factor, shamir_trick, ModInverse, extended_gcd};
 use crate::primes::generate_primes;
 use crate::proofs;
 use crate::traits::*;
