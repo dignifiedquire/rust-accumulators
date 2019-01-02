@@ -6,6 +6,9 @@ use num_integer::Integer;
 use num_traits::{One, Signed, Zero};
 use num_bigint::Sign::Plus;
 
+// Few Functions taken from
+// https://github.com/RustCrypto/RSA/blob/master/src/math.rs
+
 /// Generic trait to implement modular inverse
 pub trait ModInverse<R: Sized>: Sized {
     /// Function to calculate the [modular multiplicative
