@@ -4,6 +4,20 @@
 
 > Implementations based on [Batching Techniques for Accumulators with Applications to IOPs and Stateless Blockchains](https://eprint.iacr.org/2018/1188).
 
+- Install the [GNU Multiple Precision Library](https://gmplib.org/)
+    * On Debian and derivatives (including Ubuntu):
+        ```sh
+        $ sudo apt-get install -y libgmp-dev
+        ```
+    * On Red Hat and derivatives (Fedora, CentOS)
+        ```sh
+        $ sudo dnf -y install gmp-devel
+        ```
+    * Using Homebrew
+        ```sh
+        $ brew install gmp
+        ```
+    
 ## LICENSE
 
 MIT or Apache 2.0

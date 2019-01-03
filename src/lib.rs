@@ -32,7 +32,7 @@ extern crate num_traits;
 extern crate rand;
 extern crate byteorder;
 extern crate blake2; 
-
+extern crate classgroup;
 
 pub mod hash;
 pub mod math;
