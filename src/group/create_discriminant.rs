@@ -42,7 +42,6 @@ fn random_bytes_from_seed<D>(seed: &[u8], byte_count: usize) -> Vec<u8>
     let mut extra: u16 = 0;
     while blob.len() < byte_count {
         let mut hasher: D = D::default();
-        //let mut hasher = Sha256::new();
         hasher.input(seed);
         let extra_bits: [u8; 2] = [((extra & 0xFF00) >> 8) as _, (extra & 0xFF) as _];
         hasher.input(&extra_bits);

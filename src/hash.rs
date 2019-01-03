@@ -1,3 +1,18 @@
+// Copyright 2018 Stichting Organism
+//
+// Copyright 2018 Friedel Ziegelmayer
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 
 
@@ -32,6 +47,11 @@ pub fn hash_group<O: ArrayLength<u8>, D: Digest<OutputSize = O>>(
 
     y.mod_floor(n)
 }
+
+/// Nonce based Hash to prime
+/// Prover provide a nonce such that H(nonce|| DATA ) = l with l ∈ Primes(λ).
+/// Verification becomes a constant time operation which uses only a single primality check.
+pub fn nonce_hash<O: ArrayLength<u8>, D: Digest<OutputSize = O>>(nonce: u32, input: &[u8]) -> Option<BigUint> { return None; }
 
 
 
