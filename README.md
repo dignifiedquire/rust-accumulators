@@ -4,6 +4,8 @@
 
 > Implementations based on [Batching Techniques for Accumulators with Applications to IOPs and Stateless Blockchains](https://eprint.iacr.org/2018/1188).
 
+## Usage
+
 - Install the [GNU Multiple Precision Library](https://gmplib.org/)
     * On Debian and derivatives (including Ubuntu):
         ```sh
