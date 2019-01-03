@@ -319,7 +319,7 @@ mod tests {
     use num_bigint::Sign;
     use num_traits::FromPrimitive;
     use rand::{SeedableRng, XorShiftRng};
-    use rsa::RandPrime;
+     use crate::math::prime_rand::RandPrime;
 
     #[test]
     fn test_static() {

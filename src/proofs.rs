@@ -1,7 +1,6 @@
 use blake2::{Blake2b, Digest};
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
-
 use crate::hash::{hash_group, hash_prime};
 use crate::math::modpow_uint_int;
 
@@ -126,7 +125,7 @@ mod tests {
     use num_bigint::RandBigInt;
     use num_traits::One;
     use rand::thread_rng;
-    use rsa::RandPrime;
+    use crate::math::prime_rand::RandPrime;
 
     #[test]
     fn test_ni_poe() {

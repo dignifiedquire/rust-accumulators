@@ -3,8 +3,8 @@ use failure::{bail, Error};
 use num_bigint::BigUint;
 use num_traits::{FromPrimitive, One, Zero};
 use rand::Rng;
-use rsa::math::ModInverse;
-use rsa::RandPrime;
+use crate::math::ModInverse;
+use crate::math::prime_rand::RandPrime;
 
 /// Default exponent for RSA keys.
 const EXP: u64 = 65547;

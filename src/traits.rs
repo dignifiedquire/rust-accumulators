@@ -1,3 +1,4 @@
+
 use num_bigint::{BigInt, BigUint};
 use rand::Rng;
 
@@ -130,3 +131,8 @@ pub trait DynamicVectorCommitment: StaticVectorCommitment {
     /// Changes the value at position `i`, from `b_prime`  to `b`.
     fn update(&mut self, b: &Self::Domain, b_prime: &Self::Domain, i: usize);
 }
+
+// This trait abstracts the Group of known order that is used to sample our primes
+// pub trait PrimeGroup {
+//     fn probably_prime(&self, iterations: u32) -> bool;
+// }
