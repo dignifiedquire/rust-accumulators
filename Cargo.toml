@@ -1,6 +1,6 @@
 [package]
 name = "accumulators"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["dignifiedquire <dignifiedquire@gmail.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
@@ -25,6 +25,7 @@ serde = "1.0"
 serde_derive = "1.0"
 lazy_static = "1.2.0"
 classgroup = { path = "./classgroup" }
+
 
 [dev-dependencies]
 criterion = "0.2"
