@@ -1,11 +1,11 @@
 [package]
 name = "accumulators"
 version = "0.0.1"
-authors = ["dignifiedquire <dignifiedquire@gmail.com>"]
+authors = ["dignifiedquire <dignifiedquire@gmail.com>, organism <hello@organism.ai>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/dignifiedquire/rust-accumulators"
-repository = "https://github.com/dignifiedquire/rust-accumulators"
+repository = "https://github.com/stichtingorganism/rust-accumulators"
 
 keywords = []
 
@@ -29,6 +29,7 @@ classgroup = { path = "./classgroup" }
 
 [dev-dependencies]
 criterion = "0.2"
+sha2 = "0.8"
 
 [[bench]]
 name = "accumulators_benchmarks"

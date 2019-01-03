@@ -143,7 +143,6 @@ pub trait DynamicVectorCommitment: StaticVectorCommitment {
 /// of the class group effectively unknown. Therefore, a suitable discriminant — and its associated 
 /// class group — can be chosen without the need for a trusted setup, which is a major advantage for 
 /// using class groups in applications requiring groups of unknown order.
-
-// pub trait PrimeGroup {
-//     fn probably_prime(&self, iterations: u32) -> bool;
-// }
+pub trait PrimeGroup {
+    fn probably_prime(&self, iterations: u32) -> bool;
+}

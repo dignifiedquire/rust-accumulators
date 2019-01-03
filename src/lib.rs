@@ -41,3 +41,4 @@ pub mod proofs;
 pub mod rsa;
 pub mod traits;
 pub mod vc;
+pub mod group;
