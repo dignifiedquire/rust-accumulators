@@ -132,7 +132,7 @@ pub trait DynamicVectorCommitment: StaticVectorCommitment {
     fn update(&mut self, b: &Self::Domain, b_prime: &Self::Domain, i: usize);
 }
 
-// This trait abstracts the Group of known order that is used to sample our primes
+// This trait abstracts the Group of unknown order that is used to sample our primes
 // pub trait PrimeGroup {
 //     fn probably_prime(&self, iterations: u32) -> bool;
 // }
