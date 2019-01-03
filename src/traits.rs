@@ -15,12 +15,14 @@
 // limitations under the License.
 
 use num_bigint::{BigInt, BigUint};
+use failure::{bail, Error};
+use rand::CryptoRng;
 use rand::Rng;
 
 pub trait StaticAccumulator {
     /// Setup generates a group of unknown order and initializes the group
     /// with a generator of that group.
-    fn setup(rng: &mut impl Rng, lambda: usize) -> Self;
+    fn setup<T, R>(rng: &mut R, lambda: usize) -> Self  where T: PrimeGroup, R: CryptoRng + Rng;
 
     /// Update the accumulator.
     fn add(&mut self, x: &BigUint);
@@ -159,5 +161,9 @@ pub trait DynamicVectorCommitment: StaticVectorCommitment {
 /// class group — can be chosen without the need for a trusted setup, which is a major advantage for 
 /// using class groups in applications requiring groups of unknown order.
 pub trait PrimeGroup {
-    fn probably_prime(&self, iterations: u32) -> bool;
+
+    /// Generates the Prime elements from the group that is used
+    /// Returns first the prime and second the generator used 
+    fn generate_primes<R: Rng + CryptoRng>(rng: &mut R, bit_size: usize) -> Result<(BigUint, BigUint), Error>;
+
 }

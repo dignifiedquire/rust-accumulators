@@ -116,7 +116,7 @@ mod tests {
     use num_bigint::RandBigInt;
     use rand::{SeedableRng, XorShiftRng};
 
-    use crate::rsa::RsaAccumulator;
+    use crate::accumulator::Accumulator;
 
     #[test]
     fn test_general_vc_basics() {
@@ -124,7 +124,7 @@ mod tests {
         let n = 1024;
         let rng = &mut XorShiftRng::from_seed([1u8; 16]);
 
-        let mut vc = VectorCommitment::<RsaAccumulator>::setup(rng, lambda, n);
+        let mut vc = VectorCommitment::<Accumulator>::setup(rng, lambda, n);
 
         let val: Vec<BigUint> = (0..3).map(|_| rng.gen_biguint(16)).collect();
         vc.commit(&val);
@@ -141,7 +141,7 @@ mod tests {
         let n = 1024;
         let rng = &mut XorShiftRng::from_seed([1u8; 16]);
 
-        let mut vc = VectorCommitment::<RsaAccumulator>::setup(rng, lambda, n);
+        let mut vc = VectorCommitment::<Accumulator>::setup(rng, lambda, n);
 
         let val: Vec<BigUint> = (0..4).map(|_| rng.gen_biguint(32)).collect();
         vc.commit(&val);
@@ -160,7 +160,7 @@ mod tests {
         let n = 1024;
         let rng = &mut XorShiftRng::from_seed([1u8; 16]);
 
-        let mut vc = VectorCommitment::<RsaAccumulator>::setup(rng, lambda, n);
+        let mut vc = VectorCommitment::<Accumulator>::setup(rng, lambda, n);
         let val: Vec<BigUint> = (0..4).map(|_| rng.gen_biguint(32)).collect();
 
         vc.commit(&val);

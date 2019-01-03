@@ -20,6 +20,12 @@ use num_integer::Integer;
 use crate::hash::{hash_group, hash_prime};
 use crate::math::modpow_uint_int;
 
+
+// Let G be a group of unknown order.
+// Here both the prover and verifier are given (u, w, x) and 
+// the prover wants to convince the verifier that w = u^x holds in G.
+
+
 /// NI-PoE Prove
 /// Assumes `u^x = w`
 /// All operations are `mod n`.
@@ -36,7 +42,7 @@ pub fn ni_poe_prove(x: &BigUint, u: &BigUint, w: &BigUint, n: &BigUint) -> BigUi
     // q <- floor(x/l)
     let q = x.div_floor(&l);
 
-    // Q <- u^q
+    //Prover sends Q <- u^q ∈ G to the Verifier.
     u.modpow(&q, n)
 }
 

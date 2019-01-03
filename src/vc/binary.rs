@@ -192,7 +192,8 @@ mod tests {
 
     use rand::{Rng, SeedableRng, XorShiftRng};
 
-    use crate::rsa::RsaAccumulator;
+    use crate::accumulator::Accumulator;
+    use crate::primes::RSAGroup;
 
     #[test]
     fn test_binary_vc_basics() {
@@ -200,7 +201,7 @@ mod tests {
         let n = 1024;
         let mut rng = &mut XorShiftRng::from_seed([1u8; 16]);
 
-        let mut vc = BinaryVectorCommitment::<RsaAccumulator>::setup(&mut rng, lambda, n);
+        let mut vc = BinaryVectorCommitment::<Accumulator<RSAGroup>>::setup(&mut rng, lambda, n);
 
         let mut val: Vec<bool> = (0..64).map(|_| rng.gen()).collect();
         // set two bits manually, to make checks easier
@@ -227,7 +228,7 @@ mod tests {
         let n = 1024;
         let mut rng = &mut XorShiftRng::from_seed([1u8; 16]);
 
-        let mut vc = BinaryVectorCommitment::<RsaAccumulator>::setup(&mut rng, lambda, n);
+        let mut vc = BinaryVectorCommitment::<Accumulator>::setup(&mut rng, lambda, n);
 
         let val: Vec<bool> = (0..64).map(|_| rng.gen()).collect();
         vc.commit(&val);
@@ -246,7 +247,7 @@ mod tests {
         let n = 1024;
         let mut rng = &mut XorShiftRng::from_seed([1u8; 16]);
 
-        let mut vc = BinaryVectorCommitment::<RsaAccumulator>::setup(&mut rng, lambda, n);
+        let mut vc = BinaryVectorCommitment::<Accumulator>::setup(&mut rng, lambda, n);
 
         let mut val: Vec<bool> = (0..64).map(|_| rng.gen()).collect();
         // set two bits manually, to make checks easier

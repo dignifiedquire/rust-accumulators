@@ -1,19 +1,35 @@
+// Copyright 2018 Stichting Organism
+//
+// Copyright 2018 Friedel Ziegelmayer
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 use num_traits::{One, Zero};
+use rand::CryptoRng;
 use rand::Rng;
 
 use crate::math::{modpow_uint_int, root_factor, shamir_trick, ModInverse, extended_gcd};
-use crate::primes::generate_primes;
 use crate::proofs;
 use crate::traits::*;
 
 #[derive(Debug, Clone)]
-pub struct RsaAccumulator {
+pub struct Accumulator {
     lambda: usize,
     /// Generator
     g: BigUint,
-    /// n = pq
+    /// n = pq for RSA 
     n: BigUint,
 
     // current accumulator state
@@ -23,22 +39,24 @@ pub struct RsaAccumulator {
     s: BigUint,
 }
 
-impl RsaAccumulator {
+impl Accumulator {
     /// Returns the current public state.
     pub fn state(&self) -> &BigUint {
         &self.a_t
     }
 }
 
-impl StaticAccumulator for RsaAccumulator {
-    fn setup(rng: &mut impl Rng, lambda: usize) -> Self {
+impl StaticAccumulator for Accumulator {
+    fn setup<T, R>(rng: &mut R, lambda: usize) -> Self 
+        where T: PrimeGroup, R: CryptoRng + Rng,
+    {
         // Generate n = p q, |n| = lambda
         // This is a trusted setup, as we do know `p` and `q`, even though
         // we choose not to store them.
 
-        let (n, _, _, g) = generate_primes(rng, lambda).unwrap();
+        let (n, g) = T::generate_primes(rng, lambda).unwrap();
 
-        RsaAccumulator {
+        Accumulator {
             lambda,
             a_t: g.clone(),
             g,
@@ -78,7 +96,7 @@ impl StaticAccumulator for RsaAccumulator {
     }
 }
 
-impl DynamicAccumulator for RsaAccumulator {
+impl DynamicAccumulator for Accumulator {
     fn del(&mut self, x: &BigUint) -> Option<()> {
         let old_s = self.s.clone();
         self.s /= x;
@@ -92,7 +110,7 @@ impl DynamicAccumulator for RsaAccumulator {
     }
 }
 
-impl UniversalAccumulator for RsaAccumulator {
+impl UniversalAccumulator for Accumulator {
     fn non_mem_wit_create(&self, x: &BigUint) -> (BigUint, BigInt) {
         // s* <- \prod_{s\in S} s
         let s_star = &self.s;
@@ -117,7 +135,7 @@ impl UniversalAccumulator for RsaAccumulator {
     }
 }
 
-impl BatchedAccumulator for RsaAccumulator {
+impl BatchedAccumulator for Accumulator {
     fn batch_add(&mut self, xs: &[BigUint]) -> BigUint {
         let mut x_star = BigUint::one();
         for x in xs {
@@ -319,7 +337,8 @@ mod tests {
     use num_bigint::Sign;
     use num_traits::FromPrimitive;
     use rand::{SeedableRng, XorShiftRng};
-     use crate::math::prime_rand::RandPrime;
+    use crate::math::prime_rand::RandPrime;
+    use crate::primes::RSAGroup;
 
     #[test]
     fn test_static() {
@@ -327,7 +346,7 @@ mod tests {
 
         for _ in 0..100 {
             let lambda = 256; // insecure, but faster tests
-            let mut acc = RsaAccumulator::setup(rng, lambda);
+            let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
 
             let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
 
@@ -348,7 +367,7 @@ mod tests {
 
         for _ in 0..20 {
             let lambda = 256; // insecure, but faster tests
-            let mut acc = RsaAccumulator::setup(rng, lambda);
+            let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
 
             let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
 
@@ -380,7 +399,7 @@ mod tests {
 
         for _ in 0..20 {
             let lambda = 256; // insecure, but faster tests
-            let mut acc = RsaAccumulator::setup(rng, lambda);
+            let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
 
             let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
 
@@ -461,7 +480,7 @@ mod tests {
         let rng = &mut XorShiftRng::from_seed([0u8; 16]);
 
         let lambda = 256; // insecure, but faster tests
-        let mut acc = RsaAccumulator::setup(rng, lambda);
+        let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
 
         // regular add
         let x0 = rng.gen_prime(lambda);
@@ -522,7 +541,7 @@ mod tests {
         let size = 128;
         let rng = &mut XorShiftRng::from_seed([0u8; 16]);
         let lambda = 256; // insecure, but faster tests
-        let mut acc = RsaAccumulator::setup(rng, lambda);
+        let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
 
         // regular add
         let x0 = rng.gen_prime(lambda);
@@ -551,7 +570,7 @@ mod tests {
 
         for _ in 0..10 {
             let lambda = 256; // insecure, but faster tests
-            let mut acc = RsaAccumulator::setup(rng, lambda);
+            let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
 
             // regular add
             let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
@@ -587,7 +606,7 @@ mod tests {
 
             // MemWitX
             {
-                let mut acc = RsaAccumulator::setup(rng, lambda);
+                let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
                 let mut other = acc.clone();
                 let x = rng.gen_prime(128);
                 let y = rng.gen_prime(128);
@@ -618,7 +637,7 @@ mod tests {
 
         for _ in 0..10 {
             let lambda = 256; // insecure, but faster tests
-            let mut acc = RsaAccumulator::setup(rng, lambda);
+            let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
 
             // regular add
             let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
