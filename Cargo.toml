@@ -10,7 +10,7 @@ repository = "https://github.com/stichtingorganism/accumulators"
 keywords = []
 
 [dependencies]
-num-bigint = { version = "0.2", features = ["rand", "i128", "u64_digit"], package = "num-bigint-dig" }
+num-bigint = { version = "0.2", features = ["rand", "i128", "u64_digit", "serde"], package = "num-bigint-dig" }
 num-traits = "^0.2.6"
 num-integer = "0.1.39"
 num-iter = "0.1.37"

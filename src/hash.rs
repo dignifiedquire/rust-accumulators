@@ -51,6 +51,9 @@ pub fn hash_group<O: ArrayLength<u8>, D: Digest<OutputSize = O>>(
 /// Nonce based Hash to prime
 /// Prover provide a nonce such that H(nonce|| DATA ) = l with l ∈ Primes(λ).
 /// Verification becomes a constant time operation which uses only a single primality check.
+/// This of course allows an adversary to accumulate the same element twice but this can 
+/// be prevented by additionally hashing in the current state of the accumulator.
+/// H(nonce || DATA || CURRENT_ROOT) = l with l ∈ Primes(λ).
 pub fn nonce_hash<O: ArrayLength<u8>, D: Digest<OutputSize = O>>(nonce: u32, input: &[u8]) -> Option<BigUint> { return None; }
 
 

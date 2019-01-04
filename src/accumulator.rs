@@ -24,7 +24,8 @@ use crate::math::{modpow_uint_int, root_factor, shamir_trick, ModInverse, extend
 use crate::proofs;
 use crate::traits::*;
 
-#[derive(Debug, Clone)]
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Accumulator {
     lambda: usize,
     /// Generator

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod classgroup;
-pub use classgroup::ClassGroup;
+mod cgroup;
+pub use cgroup::ClassGroup;
 
 mod create_discriminant;
 pub use create_discriminant::*;
