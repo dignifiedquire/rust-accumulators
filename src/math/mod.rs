@@ -10,7 +10,7 @@ use num_bigint::Sign::Plus;
 pub mod prime;
 pub mod prime_rand;
 
-use self::prime_rand::RandPrime;
+// use self::prime_rand::RandPrime;
 
 // Few Functions taken from
 // https://github.com/RustCrypto/RSA/blob/master/src/math.rs

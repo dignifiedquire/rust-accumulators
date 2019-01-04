@@ -4,8 +4,8 @@ version = "0.0.1"
 authors = ["dignifiedquire <dignifiedquire@gmail.com>, organism <hello@organism.ai>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
-homepage = "https://github.com/dignifiedquire/rust-accumulators"
-repository = "https://github.com/stichtingorganism/rust-accumulators"
+homepage = "https://github.com/stichtingorganism/accumulators"
+repository = "https://github.com/stichtingorganism/accumulators"
 
 keywords = []
 
@@ -14,7 +14,7 @@ num-bigint = { version = "0.2", features = ["rand", "i128", "u64_digit"], packag
 num-traits = "^0.2.6"
 num-integer = "0.1.39"
 num-iter = "0.1.37"
-rand = "^0.5"
+rand = "0.6"
 failure = "0.1"
 failure_derive = "0.1"
 blake2 = "0.8.0"
@@ -30,6 +30,7 @@ classgroup = { path = "./classgroup" }
 [dev-dependencies]
 criterion = "0.2"
 sha2 = "0.8"
+rand_chacha = "0.1"
 
 [[bench]]
 name = "accumulators_benchmarks"

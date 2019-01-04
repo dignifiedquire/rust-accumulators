@@ -1,7 +1,24 @@
+// Copyright 2018 Stichting Organism
+//
+// Copyright 2018 Friedel Ziegelmayer
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use bitvec;
 use blake2::{Blake2b, Digest};
 use num_bigint::BigUint;
 use rand::Rng;
+use rand::CryptoRng;
 
 use crate::traits::*;
 use crate::vc::BinaryVectorCommitment;
@@ -18,11 +35,11 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment for Ve
     type Commitment = <BinaryVectorCommitment<A> as StaticVectorCommitment>::BatchCommitment;
     type BatchCommitment = <BinaryVectorCommitment<A> as StaticVectorCommitment>::BatchCommitment;
 
-    fn setup(rng: &mut impl Rng, lambda: usize, n: usize) -> Self {
+    fn setup<G, R>(rng: &mut R, lambda: usize, n: usize) -> Self where G: PrimeGroup, R: CryptoRng + Rng {
         VectorCommitment {
             lambda,
             n,
-            vc: BinaryVectorCommitment::<A>::setup(rng, lambda, n),
+            vc: BinaryVectorCommitment::<A>::setup::<G, _>(rng, lambda, n),
         }
     }
 
@@ -112,19 +129,19 @@ fn hash_binary(m: &BigUint, lambda: usize) -> bitvec::BitVec<bitvec::BigEndian, 
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use num_bigint::RandBigInt;
-    use rand::{SeedableRng, XorShiftRng};
-
+    use rand::SeedableRng;
+    use rand_chacha::ChaChaRng;
+    use crate::group::RSAGroup;
     use crate::accumulator::Accumulator;
 
     #[test]
     fn test_general_vc_basics() {
         let lambda = 128;
         let n = 1024;
-        let rng = &mut XorShiftRng::from_seed([1u8; 16]);
+        let rng = &mut ChaChaRng::from_seed([0u8; 32]);
 
-        let mut vc = VectorCommitment::<Accumulator>::setup(rng, lambda, n);
+        let mut vc = VectorCommitment::<Accumulator>::setup::<RSAGroup, _>(rng, lambda, n);
 
         let val: Vec<BigUint> = (0..3).map(|_| rng.gen_biguint(16)).collect();
         vc.commit(&val);
@@ -139,9 +156,9 @@ mod tests {
     fn test_general_vc_batch() {
         let lambda = 128;
         let n = 1024;
-        let rng = &mut XorShiftRng::from_seed([1u8; 16]);
+        let rng = &mut ChaChaRng::from_seed([0u8; 32]);
 
-        let mut vc = VectorCommitment::<Accumulator>::setup(rng, lambda, n);
+        let mut vc = VectorCommitment::<Accumulator>::setup::<RSAGroup, _>(rng, lambda, n);
 
         let val: Vec<BigUint> = (0..4).map(|_| rng.gen_biguint(32)).collect();
         vc.commit(&val);
@@ -158,9 +175,9 @@ mod tests {
     fn test_general_vc_update() {
         let lambda = 128;
         let n = 1024;
-        let rng = &mut XorShiftRng::from_seed([1u8; 16]);
+        let rng = &mut ChaChaRng::from_seed([0u8; 32]);
 
-        let mut vc = VectorCommitment::<Accumulator>::setup(rng, lambda, n);
+        let mut vc = VectorCommitment::<Accumulator>::setup::<RSAGroup, _>(rng, lambda, n);
         let val: Vec<BigUint> = (0..4).map(|_| rng.gen_biguint(32)).collect();
 
         vc.commit(&val);

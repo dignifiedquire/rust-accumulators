@@ -15,7 +15,7 @@
 // limitations under the License.
 
 use num_bigint::{BigInt, BigUint};
-use failure::{bail, Error};
+use failure::Error;
 use rand::CryptoRng;
 use rand::Rng;
 
@@ -131,7 +131,7 @@ pub trait StaticVectorCommitment {
     type Commitment;
     type BatchCommitment;
 
-    fn setup(rng: &mut impl Rng, lambda: usize, n: usize) -> Self;
+    fn setup<T, R>(rng: &mut R, lambda: usize, n: usize) -> Self where T: PrimeGroup, R: CryptoRng + Rng;
 
     fn commit(&mut self, m: &[Self::Domain]);
 

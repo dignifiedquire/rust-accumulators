@@ -9,9 +9,10 @@ use num_bigint::Sign::Plus;
 use num_bigint::{BigInt, BigUint, RandBigInt};
 use num_integer::Integer;
 use num_traits::{FromPrimitive, One, ToPrimitive, Zero};
-use rand::{SeedableRng, StdRng};
-
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 use crate::math::jacobi;
+
 
 lazy_static! {
     pub(crate) static ref BIG_1: BigUint = BigUint::one();

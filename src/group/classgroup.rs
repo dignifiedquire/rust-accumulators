@@ -12,11 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod classgroup;
-pub use classgroup::ClassGroup;
+use crate::traits::PrimeGroup;
+use failure::{bail, Error};
+use rand::CryptoRng;
+use rand::Rng;
+use num_bigint::BigUint;
 
-mod create_discriminant;
-pub use create_discriminant::*;
 
-mod rsa;
-pub use rsa::RSAGroup;
+
+pub struct ClassGroup;
+
+
+// impl PrimeGroup for ClassGroup {
+//    
+//     fn generate_primes<R: Rng + CryptoRng>(
+//             rng: &mut R,
+//             bit_size: usize,
+//         ) -> Result<(BigUint, BigUint), Error> {
+
+
+//     }
+// }

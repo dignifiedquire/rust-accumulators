@@ -16,7 +16,6 @@
 
 
 use failure::{bail, Error};
-
 use num_bigint::BigUint;
 use num_traits::{FromPrimitive, One, Zero};
 use rand::CryptoRng;
@@ -105,8 +104,8 @@ impl PrimeGroup for RSAGroup {
 
         // This is a trusted setup, as we do know `p` and `q`, even though
         // we choose not to store them.
-        let q = primes.pop().unwrap();
-        let p = primes.pop().unwrap();
+        let _q = primes.pop().unwrap();
+        let _p = primes.pop().unwrap();
 
 
         Ok((

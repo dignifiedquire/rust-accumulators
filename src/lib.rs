@@ -36,10 +36,9 @@ extern crate classgroup;
 
 pub mod hash;
 pub mod math;
-pub mod primes;
 pub mod proofs;
 mod accumulator;
-pub use accumulator::*;
+pub use accumulator::Accumulator;
 pub mod traits;
 pub mod vc;
 pub mod group;

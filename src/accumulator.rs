@@ -336,17 +336,18 @@ mod tests {
 
     use num_bigint::Sign;
     use num_traits::FromPrimitive;
-    use rand::{SeedableRng, XorShiftRng};
+    use rand::SeedableRng;
+    use rand_chacha::ChaChaRng;
     use crate::math::prime_rand::RandPrime;
-    use crate::primes::RSAGroup;
+    use crate::group::RSAGroup;
 
     #[test]
     fn test_static() {
-        let rng = &mut XorShiftRng::from_seed([0u8; 16]);
+        let rng = &mut ChaChaRng::from_seed([0u8; 32]);
 
         for _ in 0..100 {
             let lambda = 256; // insecure, but faster tests
-            let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
+            let mut acc = Accumulator::setup::<RSAGroup, _>(rng, lambda);
 
             let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
 
@@ -363,11 +364,11 @@ mod tests {
 
     #[test]
     fn test_dynamic() {
-        let rng = &mut XorShiftRng::from_seed([0u8; 16]);
+        let rng = &mut ChaChaRng::from_seed([0u8; 32]);
 
         for _ in 0..20 {
             let lambda = 256; // insecure, but faster tests
-            let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
+            let mut acc = Accumulator::setup::<RSAGroup, _>(rng, lambda);
 
             let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
 
@@ -395,11 +396,11 @@ mod tests {
 
     #[test]
     fn test_universal() {
-        let rng = &mut XorShiftRng::from_seed([0u8; 16]);
+        let rng = &mut ChaChaRng::from_seed([0u8; 32]);
 
         for _ in 0..20 {
             let lambda = 256; // insecure, but faster tests
-            let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
+            let mut acc = Accumulator::setup::<RSAGroup, _>(rng, lambda);
 
             let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
 
@@ -418,7 +419,7 @@ mod tests {
 
     #[test]
     fn test_math_non_mempership() {
-        let rng = &mut XorShiftRng::from_seed([0u8; 16]);
+        let rng = &mut ChaChaRng::from_seed([0u8; 32]);
 
         let lambda = 32;
 
@@ -477,10 +478,10 @@ mod tests {
 
     fn test_batch_add_size(size: usize) {
         println!("batch_add_size {}", size);
-        let rng = &mut XorShiftRng::from_seed([0u8; 16]);
+        let rng = &mut ChaChaRng::from_seed([0u8; 32]);
 
         let lambda = 256; // insecure, but faster tests
-        let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
+        let mut acc = Accumulator::setup::<RSAGroup, _>(rng, lambda);
 
         // regular add
         let x0 = rng.gen_prime(lambda);
@@ -539,9 +540,9 @@ mod tests {
     #[test]
     fn test_batch_add_large() {
         let size = 128;
-        let rng = &mut XorShiftRng::from_seed([0u8; 16]);
+        let rng = &mut ChaChaRng::from_seed([0u8; 32]);
         let lambda = 256; // insecure, but faster tests
-        let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
+        let mut acc = Accumulator::setup::<RSAGroup, _>(rng, lambda);
 
         // regular add
         let x0 = rng.gen_prime(lambda);
@@ -566,11 +567,11 @@ mod tests {
 
     #[test]
     fn test_aggregation() {
-        let rng = &mut XorShiftRng::from_seed([0u8; 16]);
+        let rng = &mut ChaChaRng::from_seed([0u8; 32]);
 
         for _ in 0..10 {
             let lambda = 256; // insecure, but faster tests
-            let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
+            let mut acc = Accumulator::setup::<RSAGroup, _>(rng, lambda);
 
             // regular add
             let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();
@@ -606,7 +607,7 @@ mod tests {
 
             // MemWitX
             {
-                let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
+                let mut acc = Accumulator::setup::<RSAGroup, _>(rng, lambda);
                 let mut other = acc.clone();
                 let x = rng.gen_prime(128);
                 let y = rng.gen_prime(128);
@@ -633,11 +634,11 @@ mod tests {
 
     #[test]
     fn test_aggregation_non_mem_star() {
-        let rng = &mut XorShiftRng::from_seed([0u8; 16]);
+        let rng = &mut ChaChaRng::from_seed([0u8; 32]);
 
         for _ in 0..10 {
             let lambda = 256; // insecure, but faster tests
-            let mut acc = Accumulator::setup::<RSAGroup>(rng, lambda);
+            let mut acc = Accumulator::setup::<RSAGroup, _>(rng, lambda);
 
             // regular add
             let xs = (0..5).map(|_| rng.gen_prime(lambda)).collect::<Vec<_>>();

@@ -1,9 +1,25 @@
+// Copyright 2018 Stichting Organism
+//
+// Copyright 2018 Friedel Ziegelmayer
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use blake2::Blake2b;
 use byteorder::{BigEndian, ByteOrder};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Zero};
 use rand::Rng;
-
+use rand::CryptoRng;
 use crate::hash::hash_prime;
 use crate::traits::*;
 
@@ -36,11 +52,13 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
     type Commitment = Commitment;
     type BatchCommitment = BatchCommitment;
 
-    fn setup(rng: &mut impl Rng, lambda: usize, n: usize) -> Self {
+    fn setup<G, R>(rng: &mut R, lambda: usize, n: usize) -> Self 
+        where G: PrimeGroup, R: CryptoRng + Rng
+    {
         BinaryVectorCommitment {
             lambda,
             n,
-            acc: A::setup(rng, lambda),
+            acc: A::setup::<G, _>(rng, lambda),
             pos: 0,
         }
     }
@@ -189,19 +207,18 @@ fn map_i_to_p_i(i: usize) -> BigUint {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use rand::{Rng, SeedableRng, XorShiftRng};
-
+    use rand::{Rng, SeedableRng};
+    use rand_chacha::ChaChaRng;
     use crate::accumulator::Accumulator;
-    use crate::primes::RSAGroup;
+    use crate::group::RSAGroup;
 
     #[test]
     fn test_binary_vc_basics() {
         let lambda = 128;
         let n = 1024;
-        let mut rng = &mut XorShiftRng::from_seed([1u8; 16]);
+        let mut rng = ChaChaRng::from_seed([0u8; 32]);
 
-        let mut vc = BinaryVectorCommitment::<Accumulator<RSAGroup>>::setup(&mut rng, lambda, n);
+        let mut vc = BinaryVectorCommitment::<Accumulator>::setup::<RSAGroup, _>(&mut rng, lambda, n);
 
         let mut val: Vec<bool> = (0..64).map(|_| rng.gen()).collect();
         // set two bits manually, to make checks easier
@@ -226,9 +243,9 @@ mod tests {
     fn test_binary_vc_batch() {
         let lambda = 128;
         let n = 1024;
-        let mut rng = &mut XorShiftRng::from_seed([1u8; 16]);
+        let mut rng = ChaChaRng::from_seed([0u8; 32]);
 
-        let mut vc = BinaryVectorCommitment::<Accumulator>::setup(&mut rng, lambda, n);
+        let mut vc = BinaryVectorCommitment::<Accumulator>::setup::<RSAGroup, _>(&mut rng, lambda, n);
 
         let val: Vec<bool> = (0..64).map(|_| rng.gen()).collect();
         vc.commit(&val);
@@ -245,9 +262,9 @@ mod tests {
     fn test_binary_vc_update() {
         let lambda = 128;
         let n = 1024;
-        let mut rng = &mut XorShiftRng::from_seed([1u8; 16]);
+        let mut rng = ChaChaRng::from_seed([0u8; 32]);
 
-        let mut vc = BinaryVectorCommitment::<Accumulator>::setup(&mut rng, lambda, n);
+        let mut vc = BinaryVectorCommitment::<Accumulator>::setup::<RSAGroup, _>(&mut rng, lambda, n);
 
         let mut val: Vec<bool> = (0..64).map(|_| rng.gen()).collect();
         // set two bits manually, to make checks easier
