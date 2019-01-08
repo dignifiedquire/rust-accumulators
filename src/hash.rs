@@ -125,4 +125,24 @@ mod tests {
             assert!(h <= n);
         }
     }
+
+    #[test]
+    fn test_hash_nonce() {
+        let mut rng = thread_rng();
+        let mut nonce: u16 = 0;
+        for i in 1..10 {
+            let mut val = vec![0u8; i * 32];
+            rng.fill(&mut val[..]);
+            let n = rng.gen_biguint(1024);
+
+            let mut h = nonce_hash::<_, Blake2b>(nonce, &val, None);
+
+            while h == None {
+                nonce = nonce + 1;
+                h = nonce_hash::<_, Blake2b>(nonce, &val, None);
+            }
+
+            assert!(verify_nonce_hash(&h.unwrap()));
+        }
+    }
 }
