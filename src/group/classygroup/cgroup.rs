@@ -41,6 +41,7 @@ impl PrimeGroup for ClassGroup {
         let discriminant = create_discriminant(&entropy, int_size_bits);
         let x = V::from_ab_discriminant(2.into(), 1.into(), discriminant);
 
+        //TODO convert to BigUint 
         
     }
 }
