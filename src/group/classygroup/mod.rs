@@ -10,4 +10,5 @@
 //and another one (say, a generator of a large subgroup in Z∗n) can be chosen by using a non-public randomness. 
 
 pub mod create_discriminant;
-pub mod cgroup;
+mod cgroup;
+pub use cgroup::ClassGroup;
