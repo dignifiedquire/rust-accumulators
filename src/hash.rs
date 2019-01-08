@@ -61,12 +61,12 @@ pub fn hash_group<O: ArrayLength<u8>, D: Digest<OutputSize = O>>(
 pub fn nonce_hash<O: ArrayLength<u8>, D: Digest<OutputSize = O>>(nonce: u16, input: &[u8], root: Option<&BigUint>) -> Option<BigUint> { 
     let mut vec = vec![];
     //nonce
-    u64_vec.write_u16::<BigEndian>(nonce).unwrap();
+    vec.write_u16::<BigEndian>(nonce).unwrap();
     //input
-    vec.push(input);
+    vec.extend_from_slice(input);
 
     if !root.is_none() {
-        vec.append(root.to_bytes_be());    
+        vec.append(&mut root.unwrap().to_bytes_be());    
     } 
 
     let p = BigUint::from_bytes_be(&D::digest(vec.as_slice()));
