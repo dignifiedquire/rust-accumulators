@@ -351,6 +351,21 @@ fn get_bit(x: &BigUint, i: usize) -> u8 {
     (x.get_limb(j) >> (i % 64) & 1) as u8
 }
 
+// pub fn big_prime(size: uint) -> BigUint {
+//   let one: BigUint = One::one();
+//   let two = one + one;
+
+//   let mut rng = task_rng();
+//   let mut candidate = rng.gen_biguint(size);
+//   if candidate.is_even() {
+//     candidate = candidate + one;
+//   }
+//   while !is_prime(&candidate) {
+//     candidate = candidate + two;
+//   }
+//   candidate
+// }
+
 #[cfg(test)]
 mod tests {
     use super::*;

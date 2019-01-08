@@ -22,7 +22,7 @@ use rand::Rng;
 pub trait StaticAccumulator {
     /// Setup generates a group of unknown order and initializes the group
     /// with a generator of that group.
-    fn setup<T, R>(rng: &mut R, lambda: usize) -> Self  where T: PrimeGroup, R: CryptoRng + Rng;
+    fn setup<T, R>(rng: &mut R, int_size_bits: usize) -> Self  where T: PrimeGroup, R: CryptoRng + Rng;
 
     /// Update the accumulator.
     fn add(&mut self, x: &BigUint);
@@ -131,7 +131,7 @@ pub trait StaticVectorCommitment {
     type Commitment;
     type BatchCommitment;
 
-    fn setup<T, R>(rng: &mut R, lambda: usize, n: usize) -> Self where T: PrimeGroup, R: CryptoRng + Rng;
+    fn setup<T, R>(rng: &mut R, int_size_bits: usize, n: usize) -> Self where T: PrimeGroup, R: CryptoRng + Rng;
 
     fn commit(&mut self, m: &[Self::Domain]);
 
@@ -164,6 +164,6 @@ pub trait PrimeGroup {
 
     /// Generates the Prime elements from the group that is used
     /// Returns first the prime and second the generator used 
-    fn generate_primes<R: Rng + CryptoRng>(rng: &mut R, bit_size: usize) -> Result<(BigUint, BigUint), Error>;
+    fn generate_primes<R: Rng + CryptoRng>(rng: &mut R, int_size_bits: usize) -> Result<(BigUint, BigUint), Error>;
 
 }

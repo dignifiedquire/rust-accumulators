@@ -26,8 +26,9 @@
 
 include!(concat!(env!("OUT_DIR"), "/constants.rs"));
 
+
 use core::default::Default;
-use classgroup::BigNumExt;
+use crate::group::classygroup::BigNumExt;
 use num_traits::Zero;
 use blake2::{digest::FixedOutput, Digest};
 use std::u16;
