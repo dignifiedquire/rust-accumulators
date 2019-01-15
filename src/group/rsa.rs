@@ -1,41 +1,21 @@
-// Copyright 2018 Stichting Organism
-//
-// Copyright 2018 Friedel Ziegelmayer
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-
+use crate::traits::PrimeGroup;
 use failure::{bail, Error};
-use num_bigint::{RandPrime, BigUint};
+use num_bigint::traits::ModInverse;
+use num_bigint::{BigUint, RandPrime};
 use num_traits::{FromPrimitive, One, Zero};
 use rand::CryptoRng;
 use rand::Rng;
-use num_bigint::traits::ModInverse;
-use crate::traits::PrimeGroup;
 
 pub struct RSAGroup;
 
 impl PrimeGroup for RSAGroup {
-
     // Based on https://github.com/RustCrypto/RSA/blob/master/src/algorithms.rs
     fn generate_primes<R: Rng + CryptoRng>(
         rng: &mut R,
         bit_size: usize,
     ) -> Result<(BigUint, BigUint), Error> {
-
         // Default exponent for RSA keys.
         const EXP: u64 = 65547;
-
 
         if bit_size < 64 {
             bail!("too few bits");
@@ -100,21 +80,14 @@ impl PrimeGroup for RSAGroup {
             }
         }
 
-
         // This is a trusted setup, as we do know `p` and `q`, even though
         // we choose not to store them.
         let _q = primes.pop().unwrap();
         let _p = primes.pop().unwrap();
-
 
         Ok((
             n_final,
             BigUint::from_u64(EXP).expect("invalid static exponent"),
         ))
     }
-
-
 }
-
-
-

@@ -1,17 +1,3 @@
-// Copyright 2018 Chia Network Inc and POA Networks Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//   http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 use std::{env, fs::File, io::Write, path::PathBuf, u16};
 
 /// The number of odd primes less than 65536.
@@ -26,7 +12,6 @@ const RESIDUES_LEN: usize = 5760;
 
 /// The number of odd prime numbers between 13 and 65536 exclusive.
 const SIEVE_INFO_LEN: usize = PRIMES_LEN - 5;
-
 
 fn odd_primes_below_65536() -> Vec<usize> {
     const N: usize = 1 << 16;
@@ -50,7 +35,6 @@ fn odd_primes_below_65536() -> Vec<usize> {
     assert_eq!(res.len(), PRIMES_LEN);
     res
 }
-
 
 fn mod_exponentiation(base: usize, exponent: usize, modulus: usize) -> usize {
     assert!(base < u16::MAX.into());
@@ -105,12 +89,17 @@ fn generate(f: &mut dyn Write) {
     emit(f, "SIEVE_INFO", "(u16, u16)", &sieve_info[..]);
 }
 
-
-fn main() {
+fn init_classgroup() {
     println!("cargo:rerun-if-changed=build.rs");
     let manifest_path = env::var("OUT_DIR").expect("cargo should have set this");
     let mut path = PathBuf::from(&manifest_path);
     path.push("constants.rs");
     let mut f = File::create(path).expect("cannot create constants.rs");
     generate(&mut f);
+}
+
+//Might need different things in our build pipeline so for now
+fn main() {
+    #[cfg(feature = "class_group")]
+    init_classgroup();
 }

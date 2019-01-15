@@ -1,11 +1,10 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::many_single_char_names))]
 
+use num_bigint::algorithms::extended_gcd;
+use num_bigint::traits::ModInverse;
 use num_bigint::{BigInt, BigUint, Sign};
 use num_integer::Integer;
 use num_traits::{One, Signed, Zero};
-use num_bigint::algorithms::extended_gcd;
-use num_bigint::traits::ModInverse;
-
 
 /// Calculates a = a.pow(b).
 // TODO: this can be speed up using various techniques, like precomputations.
@@ -125,7 +124,7 @@ mod tests {
     use num_bigint::{RandBigInt, RandPrime};
     use num_traits::{FromPrimitive, Pow};
     use rand::{thread_rng, Rng};
- 
+
     #[test]
     fn test_pow_assign_basics() {
         for i in 0..1024 {
@@ -234,6 +233,4 @@ mod tests {
         }
     }
 
-
-   
 }

@@ -1,28 +1,11 @@
-// Copyright 2018 Stichting Organism
-//
-// Copyright 2018 Friedel Ziegelmayer
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
+use crate::hash::{hash_group, hash_prime};
+use crate::math::modpow_uint_int;
 use blake2::{Blake2b, Digest};
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
-use crate::hash::{hash_group, hash_prime};
-use crate::math::modpow_uint_int;
-
 
 // Let G be a group of unknown order.
-// Here both the prover and verifier are given (u, w, x) and 
+// Here both the prover and verifier are given (u, w, x) and
 // the prover wants to convince the verifier that w = u^x holds in G.
 
 pub type ExponentProof = BigUint;
@@ -52,7 +35,13 @@ pub fn ni_poe_prove(x: &BigUint, u: &BigUint, w: &BigUint, n: &BigUint) -> Expon
 /// NI-PoE Verify
 /// Assumes `u^x = w`
 /// All operations are `mod n`.
-pub fn ni_poe_verify(x: &BigUint, u: &BigUint, w: &BigUint, q: &ExponentProof, n: &BigUint) -> bool {
+pub fn ni_poe_verify(
+    x: &BigUint,
+    u: &BigUint,
+    w: &BigUint,
+    q: &ExponentProof,
+    n: &BigUint,
+) -> bool {
     // l <- H_prime(x, u, w)
     let mut to_hash = x.to_bytes_be();
     to_hash.extend(&u.to_bytes_be());
@@ -67,8 +56,7 @@ pub fn ni_poe_verify(x: &BigUint, u: &BigUint, w: &BigUint, q: &ExponentProof, n
     &((q.modpow(&l, &n) * &u.modpow(&r, &n)) % n) == w
 }
 
-
- //proof of knowledge of exponent, i.e. a proof that a computationally bounded prover knows the discrete logarithm between two elements in a group of unknown order. The proof is succinct in that the proof size and verification time is independent of the size of the discrete-log.
+//proof of knowledge of exponent, i.e. a proof that a computationally bounded prover knows the discrete logarithm between two elements in a group of unknown order. The proof is succinct in that the proof size and verification time is independent of the size of the discrete-log.
 
 /// NI-PoKE2 Prove
 /// assumes `u^x = w`
@@ -154,7 +142,6 @@ mod tests {
     use num_bigint::{RandBigInt, RandPrime};
     use num_traits::One;
     use rand::thread_rng;
-    
 
     #[test]
     fn test_ni_poe() {

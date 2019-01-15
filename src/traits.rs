@@ -1,28 +1,15 @@
-// Copyright 2018 Stichting Organism
-//
-// Copyright 2018 Friedel Ziegelmayer
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-use num_bigint::{BigInt, BigUint};
 use failure::Error;
+use num_bigint::{BigInt, BigUint};
 use rand::CryptoRng;
 use rand::Rng;
 
 pub trait StaticAccumulator {
     /// Setup generates a group of unknown order and initializes the group
     /// with a generator of that group.
-    fn setup<T, R>(rng: &mut R, int_size_bits: usize) -> Self  where T: PrimeGroup, R: CryptoRng + Rng;
+    fn setup<T, R>(rng: &mut R, int_size_bits: usize) -> Self
+    where
+        T: PrimeGroup,
+        R: CryptoRng + Rng;
 
     /// Update the accumulator.
     fn add(&mut self, x: &BigUint);
@@ -131,7 +118,10 @@ pub trait StaticVectorCommitment {
     type Commitment;
     type BatchCommitment;
 
-    fn setup<T, R>(rng: &mut R, int_size_bits: usize, n: usize) -> Self where T: PrimeGroup, R: CryptoRng + Rng;
+    fn setup<T, R>(rng: &mut R, int_size_bits: usize, n: usize) -> Self
+    where
+        T: PrimeGroup,
+        R: CryptoRng + Rng;
 
     fn commit(&mut self, m: &[Self::Domain]);
 
@@ -149,21 +139,21 @@ pub trait DynamicVectorCommitment: StaticVectorCommitment {
     fn update(&mut self, b: &Self::Domain, b_prime: &Self::Domain, i: usize);
 }
 
-
 /// https://github.com/Chia-Network/vdf-competition/blob/master/classgroups.pdf
 /// This trait abstracts the Group of unknown order that is used to sample our primes
 /// RSA or Class groups of imaginary quadratic order
-/// Binary quadratic forms 
+/// Binary quadratic forms
 /// class groups of binary quadratic forms omits the trusted setup that RSA needs.
-/// The order of the class group of a negative prime discriminant d, where |d| ≡ 3 mod 4, 
-/// is believed to be difficult to compute when |d| is sufficiently large, making the order 
-/// of the class group effectively unknown. Therefore, a suitable discriminant — and its associated 
-/// class group — can be chosen without the need for a trusted setup, which is a major advantage for 
+/// The order of the class group of a negative prime discriminant d, where |d| ≡ 3 mod 4,
+/// is believed to be difficult to compute when |d| is sufficiently large, making the order
+/// of the class group effectively unknown. Therefore, a suitable discriminant — and its associated
+/// class group — can be chosen without the need for a trusted setup, which is a major advantage for
 /// using class groups in applications requiring groups of unknown order.
 pub trait PrimeGroup {
-
     /// Generates the Prime elements from the group that is used
-    /// Returns first the prime and second the generator used 
-    fn generate_primes<R: Rng + CryptoRng>(rng: &mut R, int_size_bits: usize) -> Result<(BigUint, BigUint), Error>;
-
+    /// Returns first the prime and second the generator used
+    fn generate_primes<R: Rng + CryptoRng>(
+        rng: &mut R,
+        int_size_bits: usize,
+    ) -> Result<(BigUint, BigUint), Error>;
 }

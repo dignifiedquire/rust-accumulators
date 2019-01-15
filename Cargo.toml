@@ -1,16 +1,15 @@
 [package]
 name = "accumulators"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["dignifiedquire <dignifiedquire@gmail.com>, organism <hello@organism.ai>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
-homepage = "https://github.com/stichtingorganism/accumulators"
-repository = "https://github.com/stichtingorganism/accumulators"
-
+homepage = "https://github.com/dignifiedquire/rust-accumulators"
+repository = "https://github.com/dignifiedquire/rust-accumulators"
 keywords = []
 
 [dependencies]
-num-bigint = { git = "https://github.com/stichtingorganism/num-bigint", features = ["rand", "i128", "u64_digit", "serde", "prime"], package = "num-bigint-dig" }
+num-bigint = { git = "https://github.com/dignifiedquire/num-bigint", features = ["rand", "i128", "u64_digit", "serde", "prime"], package = "num-bigint-dig" }
 num-traits = "^0.2.6"
 num-integer = "0.1.39"
 num-iter = "0.1.37"
@@ -31,6 +30,13 @@ criterion = "0.2"
 sha2 = "0.8"
 rand_chacha = "0.1"
 
+
 [[bench]]
 name = "accumulators_benchmarks"
 harness = false
+
+
+[features]
+default = ["rsa_group"]
+class_group = []
+rsa_group = []
