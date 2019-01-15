@@ -16,8 +16,8 @@ jobs:
       - run: rustup default $(cat rust-toolchain)
       - run: rustup component add rustfmt-preview
       - run: rustup component add clippy-preview
-      - run: cargo update --all-features
-      - run: cargo fetch --all-features
+      - run: cargo update
+      - run: cargo fetch
       - run: rustc +stable --version
       - run: rustc +$(cat rust-toolchain) --version
       - persist_to_workspace:
