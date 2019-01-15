@@ -16,8 +16,8 @@ jobs:
       - run: rustup default $(cat rust-toolchain)
       - run: rustup component add rustfmt-preview
       - run: rustup component add clippy-preview
-      - run: cargo update
-      - run: cargo fetch
+      - run: cargo update --all-features
+      - run: cargo fetch --all-features
       - run: rustc +stable --version
       - run: rustc +$(cat rust-toolchain) --version
       - persist_to_workspace:
@@ -40,9 +40,6 @@ jobs:
       - restore_cache:
           keys:
             - cargo-v0-{{ checksum "rust-toolchain" }}-{{ checksum "Cargo.toml" }}-{{ checksum "Cargo.lock" }}-{{ arch }}
-      - restore_cache:
-          keys:
-            - parameter-cache-{{ .Revision }}
       - run:
           name: Test (stable)
           command: cargo +stable test --verbose --frozen --all
@@ -69,7 +66,6 @@ jobs:
       - restore_cache:
           keys:
             - cargo-v0-{{ checksum "rust-toolchain" }}-{{ checksum "Cargo.toml" }}-{{ checksum "Cargo.lock" }}-{{ arch }}
-            - parameter-cache-{{ .Revision }}
       - run:
           name: Test (stable) in release profile
           command: |
@@ -87,15 +83,9 @@ jobs:
       - restore_cache:
           keys:
             - cargo-v0-{{ checksum "rust-toolchain" }}-{{ checksum "Cargo.toml" }}-{{ checksum "Cargo.lock" }}-{{ arch }}
-            - parameter-cache-{{ .Revision }}
       - run:
           name: Test (stable) in release profile
           command: cargo +stable test --verbose --release --frozen --all -- --ignored
-      - save_cache:
-          key: parameter-cache-{{ .Revision }}
-          paths:
-            - /root/.filecoin-parameter-cache
-
   test_nightly:
     docker:
       - image: filecoin/rust:latest
@@ -107,12 +97,25 @@ jobs:
       - restore_cache:
           keys:
             - cargo-v0-{{ checksum "rust-toolchain" }}-{{ checksum "Cargo.toml" }}-{{ checksum "Cargo.lock" }}-{{ arch }}
-      - restore_cache:
-          keys:
-            - parameter-cache-{{ .Revision }}
       - run:
           name: Test (nightly)
           command: cargo +$(cat rust-toolchain) test --verbose --frozen --all
+          no_output_timeout: 15m
+
+  test_classgroup:
+    docker:
+      - image: filecoin/rust:latest
+    working_directory: /mnt/crate
+    steps:
+      - checkout
+      - attach_workspace:
+          at: "."
+      - restore_cache:
+          keys:
+            - cargo-v0-{{ checksum "rust-toolchain" }}-{{ checksum "Cargo.toml" }}-{{ checksum "Cargo.lock" }}-{{ arch }}
+      - run:
+          name: Test Classgroups (nightly)
+          command: cargo +$(cat rust-toolchain) test --verbose --frozen --all --features class_group
           no_output_timeout: 15m
 
   rustfmt:
@@ -166,5 +169,8 @@ workflows:
           requires:
             - cargo_fetch
       - test_nightly:
+          requires:
+            - cargo_fetch
+      - test_classgroup:
           requires:
             - cargo_fetch

@@ -30,7 +30,7 @@ features = ["std", "derive"]
 
 [dependencies.classgroup]
 optional = true
-git = "https://github.com/stichtingorganism/classygroup" 
+git = "https://github.com/stichtingorganism/classygroup"
 
 
 [dev-dependencies]
@@ -46,5 +46,5 @@ harness = false
 
 [features]
 default = ["rsa_group"]
-class_group = ["serde"]
+class_group = ["serde", "classgroup"]
 rsa_group = []
