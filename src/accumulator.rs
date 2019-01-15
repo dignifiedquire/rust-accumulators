@@ -13,8 +13,8 @@ use num_bigint::traits::ModInverse;
 // All accumulated values are small odd primes.
 // Arbitrary data values can be hashed to small primes,
 // It is also assumed that no item is added twice to the accumulator !!!
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
 pub struct Accumulator {
     ///Length of the Integer we use in bits, This is Lambda and our security parameter
     int_size_bits: usize, //change this to u16

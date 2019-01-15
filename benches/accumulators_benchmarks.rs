@@ -11,7 +11,7 @@ extern crate blake2;
 
 use criterion::Criterion;
 
-//These benches are taken from various places that the subcomnets were brought into this crate
+//These benches are taken from various places.
 
 mod rsa_benches {
     use super::*;

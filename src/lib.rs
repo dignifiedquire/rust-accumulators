@@ -2,8 +2,10 @@
 #![allow(clippy::unreadable_literal, clippy::many_single_char_names)]
 #![warn(clippy::type_complexity, clippy::too_many_arguments)]
 
+#[cfg(feature = "serde")]
 #[macro_use]
-extern crate serde_derive;
+extern crate serde;
+
 // #[macro_use] extern crate failure_derive;
 
 #[cfg(feature = "class_group")]

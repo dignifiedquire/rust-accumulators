@@ -14,6 +14,6 @@
 // be known by anyone, one could choose G to be the class group of an imaginary quadratic
 // field.
 
-// pub mod create_discriminant;
-// mod cgroup;
-// pub use cgroup::ClassGroup;
+mod cgroup;
+pub mod create_discriminant;
+pub use self::cgroup::ClassGroup;

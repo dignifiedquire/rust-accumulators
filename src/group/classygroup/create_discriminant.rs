@@ -1,4 +1,3 @@
-
 //! Creation of discriminants.
 //!
 //! The [`pot`] tool does not accept a discriminant as a command-line argument.
@@ -11,17 +10,15 @@
 
 include!(concat!(env!("OUT_DIR"), "/constants.rs"));
 
-
-use core::default::Default;
 use crate::group::classygroup::BigNumExt;
-use num_traits::Zero;
 use blake2::{digest::FixedOutput, Digest};
+use core::default::Default;
+use num_traits::Zero;
 use std::u16;
 
-
-
-fn random_bytes_from_seed<D>(seed: &[u8], byte_count: usize) -> Vec<u8> 
-    where D: Digest + Default + FixedOutput
+fn random_bytes_from_seed<D>(seed: &[u8], byte_count: usize) -> Vec<u8>
+where
+    D: Digest + Default + FixedOutput,
 {
     assert!(byte_count <= 32 * ((1 << 16) - 1));
     let mut blob = Vec::with_capacity(byte_count);
@@ -51,8 +48,10 @@ fn random_bytes_from_seed<D>(seed: &[u8], byte_count: usize) -> Vec<u8>
 ///
 /// This function is guaranteed not to panic for any inputs whatsoever, unless
 /// memory allocation fails and the allocator in use panics in that case.
-pub fn create_discriminant<D, T>(seed: &[u8], length: u16) -> T 
-    where D:  Digest + Default + FixedOutput, T: BigNumExt, 
+pub fn create_discriminant<D, T>(seed: &[u8], length: u16) -> T
+where
+    D: Digest + Default + FixedOutput,
+    T: BigNumExt,
 {
     let (mut n, residue) = {
         // The number of “extra” bits (that don’t evenly fit in a byte)
@@ -116,16 +115,13 @@ pub fn create_discriminant<D, T>(seed: &[u8], length: u16) -> T
     }
 }
 
-
-
 #[cfg(test)]
 mod test {
     use super::*;
     use classgroup::{gmp_classgroup::GmpClassGroup, ClassGroup};
     type Mpz = <GmpClassGroup as ClassGroup>::BigNum;
-    use std::str::FromStr;
     use sha2::Sha256;
-
+    use std::str::FromStr;
 
     #[test]
     fn check_discriminant_1() {

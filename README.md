@@ -11,7 +11,8 @@ Extra Readings:
     - https://github.com/Chia-Network/vdf-competition/blob/master/classgroups.pdf
     - https://eprint.iacr.org/2018/623.pdf
 
-## Usage
+## Usage for Classgroups
+We utilize a third party BigNum Lib for now. Pure rust implementation soon.
 
 - Install the [GNU Multiple Precision Library](https://gmplib.org/)
     * On Debian and derivatives (including Ubuntu):
