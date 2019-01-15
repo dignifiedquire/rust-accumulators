@@ -37,11 +37,13 @@ impl PrimeGroup for ClassGroup {
 
         let mut entropy = [0u8; 32];
         csprng.fill_bytes(&mut entropy);
-
+        //guaranteed to be a negative prime number
         let discriminant = create_discriminant(&entropy, int_size_bits);
+        //
         let x = V::from_ab_discriminant(2.into(), 1.into(), discriminant);
 
         //TODO convert to BigUint 
+        BigUint::from_bytes_be(x);
         
     }
 }

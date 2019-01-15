@@ -10,7 +10,7 @@ repository = "https://github.com/stichtingorganism/accumulators"
 keywords = []
 
 [dependencies]
-num-bigint = { version = "0.2", features = ["rand", "i128", "u64_digit", "serde"], package = "num-bigint-dig" }
+num-bigint = { git = "https://github.com/stichtingorganism/num-bigint", features = ["rand", "i128", "u64_digit", "serde", "prime"], package = "num-bigint-dig" }
 num-traits = "^0.2.6"
 num-integer = "0.1.39"
 num-iter = "0.1.37"
@@ -23,7 +23,6 @@ byteorder = "1.2.7"
 bitvec = "0.9.0"
 serde = "1.0"
 serde_derive = "1.0"
-lazy_static = "1.2.0"
 classgroup = { git = "https://github.com/stichtingorganism/classygroup" }
 
 

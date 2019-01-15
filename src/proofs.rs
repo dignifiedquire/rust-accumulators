@@ -25,11 +25,14 @@ use crate::math::modpow_uint_int;
 // Here both the prover and verifier are given (u, w, x) and 
 // the prover wants to convince the verifier that w = u^x holds in G.
 
+pub type ExponentProof = BigUint;
+
+pub type KnowledgeProof = (BigUint, BigUint, BigInt);
 
 /// NI-PoE Prove
 /// Assumes `u^x = w`
 /// All operations are `mod n`.
-pub fn ni_poe_prove(x: &BigUint, u: &BigUint, w: &BigUint, n: &BigUint) -> BigUint {
+pub fn ni_poe_prove(x: &BigUint, u: &BigUint, w: &BigUint, n: &BigUint) -> ExponentProof {
     debug_assert!(&u.modpow(x, n) == w, "invalid input");
 
     // l <- H_prime(x, u, w)
@@ -49,7 +52,7 @@ pub fn ni_poe_prove(x: &BigUint, u: &BigUint, w: &BigUint, n: &BigUint) -> BigUi
 /// NI-PoE Verify
 /// Assumes `u^x = w`
 /// All operations are `mod n`.
-pub fn ni_poe_verify(x: &BigUint, u: &BigUint, w: &BigUint, q: &BigUint, n: &BigUint) -> bool {
+pub fn ni_poe_verify(x: &BigUint, u: &BigUint, w: &BigUint, q: &ExponentProof, n: &BigUint) -> bool {
     // l <- H_prime(x, u, w)
     let mut to_hash = x.to_bytes_be();
     to_hash.extend(&u.to_bytes_be());
@@ -64,6 +67,9 @@ pub fn ni_poe_verify(x: &BigUint, u: &BigUint, w: &BigUint, q: &BigUint, n: &Big
     &((q.modpow(&l, &n) * &u.modpow(&r, &n)) % n) == w
 }
 
+
+ //proof of knowledge of exponent, i.e. a proof that a computationally bounded prover knows the discrete logarithm between two elements in a group of unknown order. The proof is succinct in that the proof size and verification time is independent of the size of the discrete-log.
+
 /// NI-PoKE2 Prove
 /// assumes `u^x = w`
 /// All operations are `mod n`.
@@ -74,6 +80,7 @@ pub fn ni_poke2_prove(
     n: &BigUint,
 ) -> (BigUint, BigUint, BigInt) {
     let x: BigInt = x.into();
+
     debug_assert!(&modpow_uint_int(u, &x, n).unwrap() == w, "invalid input");
 
     // g <- H_G(u, w)
@@ -144,10 +151,10 @@ pub fn ni_poke2_verify(
 mod tests {
     use super::*;
 
-    use num_bigint::RandBigInt;
+    use num_bigint::{RandBigInt, RandPrime};
     use num_traits::One;
     use rand::thread_rng;
-    use crate::math::prime_rand::RandPrime;
+    
 
     #[test]
     fn test_ni_poe() {

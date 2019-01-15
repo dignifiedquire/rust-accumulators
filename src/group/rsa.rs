@@ -16,12 +16,11 @@
 
 
 use failure::{bail, Error};
-use num_bigint::BigUint;
+use num_bigint::{RandPrime, BigUint};
 use num_traits::{FromPrimitive, One, Zero};
 use rand::CryptoRng;
 use rand::Rng;
-use crate::math::ModInverse;
-use crate::math::prime_rand::RandPrime;
+use num_bigint::traits::ModInverse;
 use crate::traits::PrimeGroup;
 
 pub struct RSAGroup;

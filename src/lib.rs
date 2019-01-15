@@ -24,7 +24,6 @@
 extern crate serde; 
 extern crate failure;
 #[macro_use] extern crate failure_derive;
-#[macro_use] extern crate lazy_static;
 extern crate num_iter;
 extern crate num_bigint;
 extern crate num_integer;
@@ -42,3 +41,5 @@ pub use accumulator::Accumulator;
 pub mod traits;
 pub mod vc;
 pub mod group;
+
+

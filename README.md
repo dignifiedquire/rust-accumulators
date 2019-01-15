@@ -4,11 +4,12 @@
 
 > Implementations based on [Batching Techniques for Accumulators with Applications to IOPs and Stateless Blockchains](https://eprint.iacr.org/2018/1188).
 
-Extra Reading:
+Extra Readings:
 
     - https://kodu.ut.ee/~lipmaa/papers/lip12b/cl-accum.pdf
     - https://www.cs.purdue.edu/homes/ninghui/papers/accumulator_acns07.pdf
     - https://github.com/Chia-Network/vdf-competition/blob/master/classgroups.pdf
+    - https://eprint.iacr.org/2018/623.pdf
 
 ## Usage
 

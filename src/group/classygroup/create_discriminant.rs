@@ -58,7 +58,7 @@ fn random_bytes_from_seed<D>(seed: &[u8], byte_count: usize) -> Vec<u8>
 /// fits in `length` bits, except with negligible probability (less than
 /// 2^(-100)).  It is also guaranteed to equal 7 modulo 8.
 ///
-/// This function uses sha256 to expand the seed.  Therefore, different seeds
+/// This function uses blake2b to expand the seed.  Therefore, different seeds
 /// will result in completely different discriminants with overwhelming
 /// probability, unless `length` is very small.  However, this function is
 /// deterministic: if it is called twice with identical seeds and lengths, it
