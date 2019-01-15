@@ -150,7 +150,8 @@ pub trait DynamicVectorCommitment: StaticVectorCommitment {
 /// class group — can be chosen without the need for a trusted setup, which is a major advantage for
 /// using class groups in applications requiring groups of unknown order.
 pub trait PrimeGroup {
-    #[cfg(feature = "rsa_group")]
+
+
     /// Generates the Prime elements from the group that is used
     /// Returns first the prime and second the generator used
     fn generate_primes<R: Rng + CryptoRng>(
