@@ -54,35 +54,38 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment for Ve
     fn verify(&self, b: &Self::Domain, i: usize, pi: &Self::Commitment) -> bool {
         let comm = hash_binary(b, self.lambda).into_iter().collect::<Vec<_>>();
         let offset = i * self.lambda;
-        let is = (0..self.lambda).map(|j| offset + j).collect::<Vec<_>>();
+        let is = (0..comm.len()).map(|j| offset + j).collect::<Vec<_>>();
 
         self.vc.batch_verify(&comm, &is, pi)
     }
 
     fn batch_open(&self, b: &[Self::Domain], is: &[usize]) -> Self::BatchCommitment {
-        assert_eq!(b.len(), is.len());
+        debug_assert!(b.len() == is.len());
 
         let mut comm = Vec::with_capacity(self.lambda * b.len());
         let mut comm_is = Vec::with_capacity(self.lambda * is.len());
 
         for (el, i) in b.iter().zip(is) {
-            comm.extend(hash_binary(el, self.lambda).into_iter());
+            let c = hash_binary(el, self.lambda).into_iter().collect::<Vec<_>>();
+            comm.extend(&c);
             let offset = i * self.lambda;
-            comm_is.extend((0..self.lambda).map(|j| offset + j));
+            comm_is.extend((0..c.len()).map(|j| offset + j));
         }
 
         self.vc.batch_open(&comm, &comm_is)
     }
 
     fn batch_verify(&self, b: &[Self::Domain], is: &[usize], pi: &Self::BatchCommitment) -> bool {
-        assert_eq!(b.len(), is.len());
+        debug_assert!(b.len() == is.len());
+
         let mut comm = Vec::with_capacity(self.lambda * b.len());
         let mut comm_is = Vec::with_capacity(self.lambda * is.len());
 
         for (el, i) in b.iter().zip(is) {
-            comm.extend(hash_binary(el, self.lambda).into_iter());
+            let c = hash_binary(el, self.lambda).into_iter().collect::<Vec<_>>();
+            comm.extend(&c);
             let offset = i * self.lambda;
-            comm_is.extend((0..self.lambda).map(|j| offset + j));
+            comm_is.extend((0..c.len()).map(|j| offset + j));
         }
 
         self.vc.batch_verify(&comm, &comm_is, pi)

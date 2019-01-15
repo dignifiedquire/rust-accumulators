@@ -89,7 +89,7 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
     }
 
     fn batch_open(&self, b: &[Self::Domain], i: &[usize]) -> Self::BatchCommitment {
-        assert_eq!(b.len(), i.len());
+        debug_assert!(b.len() == i.len());
 
         let ones = b
             .iter()
@@ -134,7 +134,7 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
     }
 
     fn batch_verify(&self, b: &[Self::Domain], i: &[usize], pi: &Self::BatchCommitment) -> bool {
-        assert_eq!(b.len(), i.len());
+        debug_assert!(b.len() == i.len());
 
         let ones = b
             .iter()
