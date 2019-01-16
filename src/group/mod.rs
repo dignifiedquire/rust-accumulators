@@ -3,12 +3,11 @@
 //
 //Classgroup Backend
 //
+#[cfg(feature = "class_group")]
+mod classgroup;
 
 #[cfg(feature = "class_group")]
-mod classygroup;
-
-#[cfg(feature = "class_group")]
-pub use self::classygroup::ClassGroup;
+pub use self::classgroup::ClassGroup;
 
 //
 //RSA Backend

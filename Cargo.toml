@@ -28,14 +28,13 @@ default-features = false
 features = ["std", "derive"]
 
 
-[dependencies.classgroup]
+[dependencies.classygroup]
 optional = true
 git = "https://github.com/stichtingorganism/classygroup" 
 
 
 [dev-dependencies]
 criterion = "0.2"
-sha2 = "0.8"
 rand_chacha = "0.1"
 
 
@@ -46,5 +45,5 @@ harness = false
 
 [features]
 default = ["rsa_group"]
-class_group = ["serde", "classgroup"]
+class_group = ["serde", "classygroup"]
 rsa_group = []

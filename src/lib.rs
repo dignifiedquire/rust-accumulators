@@ -9,7 +9,7 @@ extern crate serde;
 // #[macro_use] extern crate failure_derive;
 
 #[cfg(feature = "class_group")]
-extern crate classgroup;
+extern crate classygroup;
 
 pub mod accumulator;
 pub mod group;
