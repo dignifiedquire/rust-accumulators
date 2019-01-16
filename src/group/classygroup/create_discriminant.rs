@@ -10,8 +10,8 @@
 
 include!(concat!(env!("OUT_DIR"), "/constants.rs"));
 
-use classgroup::BigNumExt;
 use blake2::{digest::FixedOutput, Digest};
+use classgroup::BigNumExt;
 use core::default::Default;
 use num_traits::Zero;
 use std::u16;
