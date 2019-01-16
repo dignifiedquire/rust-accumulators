@@ -1,7 +1,10 @@
+#![cfg_attr(feature = "cargo-clippy", allow(clippy::many_single_char_names))]
+
+use num_bigint::algorithms::extended_gcd;
+use num_bigint::traits::ModInverse;
 use num_bigint::{BigInt, BigUint, Sign};
 use num_integer::Integer;
 use num_traits::{One, Signed, Zero};
-use rsa::math::{extended_gcd, ModInverse};
 
 /// Calculates a = a.pow(b).
 // TODO: this can be speed up using various techniques, like precomputations.
@@ -118,10 +121,9 @@ pub fn root_factor(g: &BigUint, x: &[BigUint], n: &BigUint) -> Vec<BigUint> {
 mod tests {
     use super::*;
 
-    use num_bigint::RandBigInt;
+    use num_bigint::{RandBigInt, RandPrime};
     use num_traits::{FromPrimitive, Pow};
     use rand::{thread_rng, Rng};
-    use rsa::RandPrime;
 
     #[test]
     fn test_pow_assign_basics() {
@@ -230,4 +232,5 @@ mod tests {
             assert_eq!(&root.clone().modpow(&(x.clone() * &y), &n), &a);
         }
     }
+
 }

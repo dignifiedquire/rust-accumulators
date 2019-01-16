@@ -1,10 +1,15 @@
+use failure::Error;
 use num_bigint::{BigInt, BigUint};
+use rand::CryptoRng;
 use rand::Rng;
 
 pub trait StaticAccumulator {
     /// Setup generates a group of unknown order and initializes the group
     /// with a generator of that group.
-    fn setup(rng: &mut impl Rng, lambda: usize) -> Self;
+    fn setup<T, R>(rng: &mut R, int_size_bits: usize) -> Self
+    where
+        T: PrimeGroup,
+        R: CryptoRng + Rng;
 
     /// Update the accumulator.
     fn add(&mut self, x: &BigUint);
@@ -113,7 +118,10 @@ pub trait StaticVectorCommitment {
     type Commitment;
     type BatchCommitment;
 
-    fn setup(rng: &mut impl Rng, lambda: usize, n: usize) -> Self;
+    fn setup<T, R>(rng: &mut R, int_size_bits: usize, n: usize) -> Self
+    where
+        T: PrimeGroup,
+        R: CryptoRng + Rng;
 
     fn commit(&mut self, m: &[Self::Domain]);
 
@@ -129,4 +137,15 @@ pub trait StaticVectorCommitment {
 pub trait DynamicVectorCommitment: StaticVectorCommitment {
     /// Changes the value at position `i`, from `b_prime`  to `b`.
     fn update(&mut self, b: &Self::Domain, b_prime: &Self::Domain, i: usize);
+}
+
+/// This trait abstracts the Group of unknown order that is used to sample our primes
+/// RSA or Class groups of imaginary quadratic order
+pub trait PrimeGroup {
+    /// Generates the Prime elements from the group that is used
+    /// Returns first the prime and second the generator used
+    fn generate_primes<R: Rng + CryptoRng>(
+        rng: &mut R,
+        int_size_bits: usize,
+    ) -> Result<(BigUint, BigUint), Error>;
 }

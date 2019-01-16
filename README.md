@@ -4,6 +4,30 @@
 
 > Implementations based on [Batching Techniques for Accumulators with Applications to IOPs and Stateless Blockchains](https://eprint.iacr.org/2018/1188).
 
+Extra Readings:
+
+    - https://kodu.ut.ee/~lipmaa/papers/lip12b/cl-accum.pdf
+    - https://www.cs.purdue.edu/homes/ninghui/papers/accumulator_acns07.pdf
+    - https://github.com/Chia-Network/vdf-competition/blob/master/classgroups.pdf
+    - https://eprint.iacr.org/2018/623.pdf
+
+## Usage for Classgroups
+We utilize a third party BigNum Lib for now. Pure rust implementation soon.
+
+- Install the [GNU Multiple Precision Library](https://gmplib.org/)
+    * On Debian and derivatives (including Ubuntu):
+        ```sh
+        $ sudo apt-get install -y libgmp-dev
+        ```
+    * On Red Hat and derivatives (Fedora, CentOS)
+        ```sh
+        $ sudo dnf -y install gmp-devel
+        ```
+    * Using Homebrew
+        ```sh
+        $ brew install gmp
+        ```
+    
 ## LICENSE
 
 MIT or Apache 2.0

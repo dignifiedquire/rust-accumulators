@@ -1,11 +1,11 @@
+use crate::hash::hash_prime;
+use crate::traits::*;
 use blake2::Blake2b;
 use byteorder::{BigEndian, ByteOrder};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Zero};
+use rand::CryptoRng;
 use rand::Rng;
-
-use crate::hash::hash_prime;
-use crate::traits::*;
 
 #[derive(Debug, Clone)]
 pub struct BinaryVectorCommitment<A: UniversalAccumulator + BatchedAccumulator> {
@@ -36,11 +36,15 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
     type Commitment = Commitment;
     type BatchCommitment = BatchCommitment;
 
-    fn setup(rng: &mut impl Rng, lambda: usize, n: usize) -> Self {
+    fn setup<G, R>(rng: &mut R, lambda: usize, n: usize) -> Self
+    where
+        G: PrimeGroup,
+        R: CryptoRng + Rng,
+    {
         BinaryVectorCommitment {
             lambda,
             n,
-            acc: A::setup(rng, lambda),
+            acc: A::setup::<G, _>(rng, lambda),
             pos: 0,
         }
     }
@@ -189,18 +193,19 @@ fn map_i_to_p_i(i: usize) -> BigUint {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use rand::{Rng, SeedableRng, XorShiftRng};
-
-    use crate::rsa::RsaAccumulator;
+    use crate::accumulator::Accumulator;
+    use crate::group::RSAGroup;
+    use rand::{Rng, SeedableRng};
+    use rand_chacha::ChaChaRng;
 
     #[test]
     fn test_binary_vc_basics() {
         let lambda = 128;
         let n = 1024;
-        let mut rng = &mut XorShiftRng::from_seed([1u8; 16]);
+        let mut rng = ChaChaRng::from_seed([0u8; 32]);
 
-        let mut vc = BinaryVectorCommitment::<RsaAccumulator>::setup(&mut rng, lambda, n);
+        let mut vc =
+            BinaryVectorCommitment::<Accumulator>::setup::<RSAGroup, _>(&mut rng, lambda, n);
 
         let mut val: Vec<bool> = (0..64).map(|_| rng.gen()).collect();
         // set two bits manually, to make checks easier
@@ -225,9 +230,10 @@ mod tests {
     fn test_binary_vc_batch() {
         let lambda = 128;
         let n = 1024;
-        let mut rng = &mut XorShiftRng::from_seed([1u8; 16]);
+        let mut rng = ChaChaRng::from_seed([0u8; 32]);
 
-        let mut vc = BinaryVectorCommitment::<RsaAccumulator>::setup(&mut rng, lambda, n);
+        let mut vc =
+            BinaryVectorCommitment::<Accumulator>::setup::<RSAGroup, _>(&mut rng, lambda, n);
 
         let val: Vec<bool> = (0..64).map(|_| rng.gen()).collect();
         vc.commit(&val);
@@ -244,9 +250,10 @@ mod tests {
     fn test_binary_vc_update() {
         let lambda = 128;
         let n = 1024;
-        let mut rng = &mut XorShiftRng::from_seed([1u8; 16]);
+        let mut rng = ChaChaRng::from_seed([0u8; 32]);
 
-        let mut vc = BinaryVectorCommitment::<RsaAccumulator>::setup(&mut rng, lambda, n);
+        let mut vc =
+            BinaryVectorCommitment::<Accumulator>::setup::<RSAGroup, _>(&mut rng, lambda, n);
 
         let mut val: Vec<bool> = (0..64).map(|_| rng.gen()).collect();
         // set two bits manually, to make checks easier
