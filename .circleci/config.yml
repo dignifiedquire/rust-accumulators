@@ -170,6 +170,6 @@ workflows:
       - test_nightly:
           requires:
             - cargo_fetch
-      - test_classgroup:
-          requires:
-            - cargo_fetch
+      # - test_classgroup:
+      #     requires:
+      #       - cargo_fetch
