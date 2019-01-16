@@ -50,7 +50,7 @@ pub fn nonce_hash<O: ArrayLength<u8>, D: Digest<OutputSize = O>>(
     //input
     vec.extend_from_slice(input);
 
-    if !root.is_none() {
+    if root.is_some() {
         vec.append(&mut root.unwrap().to_bytes_be());
     }
 
@@ -64,13 +64,9 @@ pub fn nonce_hash<O: ArrayLength<u8>, D: Digest<OutputSize = O>>(
 }
 
 ///Verify if given BIGUINT is a prime, complements the nonce_hash() function
-pub fn verify_nonce_hash(p: &BigUint) -> bool {
-    if probably_prime(p, 20) {
-        true
-    } else {
-        false
-    }
-}
+pub fn verify_nonce_hash(p: &BigUint) -> bool { probably_prime(p, 20) }
+
+
 
 #[cfg(test)]
 mod tests {
