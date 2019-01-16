@@ -57,18 +57,18 @@ pub fn nonce_hash<O: ArrayLength<u8>, D: Digest<OutputSize = O>>(
     let p = BigUint::from_bytes_be(&D::digest(vec.as_slice()));
 
     if probably_prime(&p, 20) {
-        return Some(p);
+        Some(p)
     } else {
-        return None;
+        None
     }
 }
 
 ///Verify if given BIGUINT is a prime, complements the nonce_hash() function
 pub fn verify_nonce_hash(p: &BigUint) -> bool {
     if probably_prime(p, 20) {
-        return true;
+        true
     } else {
-        return false;
+        false
     }
 }
 
