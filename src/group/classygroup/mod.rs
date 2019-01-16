@@ -16,4 +16,4 @@
 
 mod cgroup;
 pub mod create_discriminant;
-pub use self::cgroup::ClassGroup;
+pub use self::cgroup::ClassyGroup as ClassGroup;

@@ -46,5 +46,5 @@ harness = false
 
 [features]
 default = ["rsa_group"]
-class_group = ["serde"]
+class_group = ["serde", "classgroup"]
 rsa_group = []

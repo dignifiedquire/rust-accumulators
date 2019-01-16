@@ -10,7 +10,7 @@
 
 include!(concat!(env!("OUT_DIR"), "/constants.rs"));
 
-use crate::group::classygroup::BigNumExt;
+use classgroup::BigNumExt;
 use blake2::{digest::FixedOutput, Digest};
 use core::default::Default;
 use num_traits::Zero;
