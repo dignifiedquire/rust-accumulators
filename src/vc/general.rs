@@ -1,12 +1,21 @@
 use bitvec;
 use blake2::{Blake2b, Digest};
 use num_bigint::BigUint;
-use rand::CryptoRng;
-use rand::Rng;
+use rand::rngs::OsRng;
+use rand::{CryptoRng, Rng};
 
 use crate::traits::*;
 use crate::vc::BinaryVectorCommitment;
 
+pub fn create_vector_commitment<A: UniversalAccumulator + BatchedAccumulator, G: PrimeGroup>(
+    lambda: usize,
+    n: usize,
+) -> VectorCommitment<A> {
+    let rng = &mut OsRng::new().expect("no secure randomness available");
+    VectorCommitment::<A>::setup::<G, _>(rng, lambda, n)
+}
+
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct VectorCommitment<A: UniversalAccumulator + BatchedAccumulator> {
     lambda: usize,
