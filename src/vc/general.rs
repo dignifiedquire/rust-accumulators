@@ -7,11 +7,11 @@ use rand::{CryptoRng, Rng};
 use crate::traits::*;
 use crate::vc::BinaryVectorCommitment;
 
-pub fn create_vector_commitment<A: UniversalAccumulator + BatchedAccumulator, G: PrimeGroup>(
+pub fn create_vector_commitment<A: UniversalAccumulator + BatchedAccumulator, G: PrimeGroup, R: CryptoRng + Rng>(
+    rng: &mut R,
     lambda: usize,
     n: usize,
 ) -> VectorCommitment<A> {
-    let rng = &mut OsRng::new().expect("no secure randomness available");
     VectorCommitment::<A>::setup::<G, _>(rng, lambda, n)
 }
 
