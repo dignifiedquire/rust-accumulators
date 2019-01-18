@@ -171,6 +171,10 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
 
         true
     }
+
+    fn state(&self) -> &BigUint {
+        self.acc.state()
+    }
 }
 
 impl<A: UniversalAccumulator + BatchedAccumulator> DynamicVectorCommitment

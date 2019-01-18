@@ -99,6 +99,10 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment for Ve
 
         self.vc.batch_verify(&comm, &comm_is, pi)
     }
+
+    fn state(&self) -> &BigUint {
+        self.vc.state()
+    }
 }
 
 impl<A: UniversalAccumulator + BatchedAccumulator> DynamicVectorCommitment for VectorCommitment<A> {
