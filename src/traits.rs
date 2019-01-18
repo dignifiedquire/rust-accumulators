@@ -20,6 +20,8 @@ pub trait StaticAccumulator {
 
     /// Verify a membership proof.
     fn ver_mem(&self, w: &BigUint, x: &BigUint) -> bool;
+
+    fn state(&self) -> &BigUint;
 }
 
 pub trait DynamicAccumulator: StaticAccumulator {
@@ -132,6 +134,8 @@ pub trait StaticVectorCommitment {
     fn batch_open(&self, b: &[Self::Domain], i: &[usize]) -> Self::BatchCommitment;
 
     fn batch_verify(&self, b: &[Self::Domain], i: &[usize], pi: &Self::BatchCommitment) -> bool;
+
+    fn state(&self) -> &BigUint;
 }
 
 pub trait DynamicVectorCommitment: StaticVectorCommitment {
