@@ -7,6 +7,7 @@ use num_traits::{One, Zero};
 use rand::CryptoRng;
 use rand::Rng;
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct BinaryVectorCommitment<A: UniversalAccumulator + BatchedAccumulator> {
     lambda: usize,
@@ -15,12 +16,14 @@ pub struct BinaryVectorCommitment<A: UniversalAccumulator + BatchedAccumulator> 
     pos: usize,
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Commitment {
     Mem(BigUint),
     NonMem((BigUint, BigInt)),
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BatchCommitment(
     // membership proof
@@ -89,7 +92,7 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
     }
 
     fn batch_open(&self, b: &[Self::Domain], i: &[usize]) -> Self::BatchCommitment {
-        assert_eq!(b.len(), i.len());
+        debug_assert!(b.len() == i.len());
 
         let ones = b
             .iter()
@@ -134,7 +137,7 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
     }
 
     fn batch_verify(&self, b: &[Self::Domain], i: &[usize], pi: &Self::BatchCommitment) -> bool {
-        assert_eq!(b.len(), i.len());
+        debug_assert!(b.len() == i.len());
 
         let ones = b
             .iter()
