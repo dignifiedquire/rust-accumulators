@@ -13,7 +13,9 @@ crate::vc::VectorCommitment;
 
 /// A map based on a vector-commitment.
 pub struct Map<K, V> A: UniversalAccumulator + BatchedAccumulator {
-    vc: VectorCommitment<A>
+    vc: VectorCommitment<A>,
+    //Value Store
+    //values: 
 }
 
 
