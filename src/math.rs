@@ -1,7 +1,6 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::many_single_char_names))]
 
-use num_bigint::algorithms::extended_gcd;
-use num_bigint::traits::ModInverse;
+use num_bigint::traits::{ExtendedGcd, ModInverse};
 use num_bigint::{BigInt, BigUint, Sign};
 use num_integer::Integer;
 use num_traits::{One, Signed, Zero};
@@ -65,7 +64,7 @@ pub fn shamir_trick(
     }
 
     // a, b <- Bezout(x, y)
-    let (_, a, b) = extended_gcd(x, y);
+    let (_, a, b) = x.extended_gcd(y);
 
     let l = modpow_uint_int(&root_x, &b, n);
     let r = modpow_uint_int(&root_y, &a, n);
@@ -81,7 +80,7 @@ pub fn shamir_trick(
 
 /// Given `y = g^x` and `x = \prod x_i`, calculates the `x_i`-th roots, for all `i`.
 /// All operations are `mod n`.
-pub fn root_factor(g: &BigUint, x: &[BigUint], n: &BigUint) -> Vec<BigUint> {
+pub fn root_factor(g: &BigUint, x: &[&BigUint], n: &BigUint) -> Vec<BigUint> {
     let m = x.len();
     if m == 1 {
         return vec![g.clone()];
@@ -95,7 +94,7 @@ pub fn root_factor(g: &BigUint, x: &[BigUint], n: &BigUint) -> Vec<BigUint> {
         let mut p = BigUint::one();
         // the paper uses the upper part for g_L
         for x in x_r {
-            p *= x;
+            p *= *x;
         }
 
         g.modpow(&p, n)
@@ -105,7 +104,7 @@ pub fn root_factor(g: &BigUint, x: &[BigUint], n: &BigUint) -> Vec<BigUint> {
         let mut p = BigUint::one();
         // the paper uses the lower part for g_R
         for x in x_l {
-            p *= x;
+            p *= *x;
         }
 
         g.modpow(&p, n)
@@ -179,8 +178,9 @@ mod tests {
             let m: usize = rng.gen_range(1, 128);
 
             let x = (0..m).map(|_| rng.gen_biguint(64)).collect::<Vec<_>>();
+            let x_ref = x.iter().map(|v| v).collect::<Vec<&BigUint>>();
 
-            let r = root_factor(&g, &x, &n);
+            let r = root_factor(&g, &x_ref[..], &n);
 
             let mut xs = BigUint::one();
             for e in &x {

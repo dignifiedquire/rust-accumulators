@@ -1,4 +1,4 @@
-use num_bigint::{BigInt, BigUint};
+use num_bigint::{BigInt, BigUint, ExtendedGcd, IntoBigUint, ModInverse, ToBigInt};
 use num_integer::Integer;
 use num_traits::{One, Zero};
 use rand::CryptoRng;
@@ -7,8 +7,6 @@ use rand::Rng;
 use crate::math::{modpow_uint_int, root_factor, shamir_trick};
 use crate::proofs;
 use crate::traits::*;
-use num_bigint::algorithms::extended_gcd;
-use num_bigint::traits::ModInverse;
 
 // All accumulated values are small odd primes.
 // Arbitrary data values can be hashed to small primes,
@@ -118,7 +116,7 @@ impl UniversalAccumulator for Accumulator {
         let s_star = &self.set;
 
         // a, b <- Bezout(x, set*)
-        let (_, a, b) = extended_gcd(x, s_star);
+        let (_, a, b) = x.extended_gcd(s_star);
         let d = modpow_uint_int(&self.g, &a, &self.n).expect("prime");
 
         (d, b)
@@ -138,8 +136,20 @@ impl UniversalAccumulator for Accumulator {
 }
 
 impl BatchedAccumulator for Accumulator {
-    fn batch_add(&mut self, xs: &[BigUint]) -> BigUint {
-        //begin our summation of the added elements
+    fn batch_add_no_proof<'a>(&mut self, xs: impl IntoIterator<Item = &'a BigUint>) {
+        // begin our summation of the added elements
+        let mut x_star = BigUint::one();
+        for x in xs {
+            x_star *= x;
+            // add into element
+            self.set *= x;
+        }
+
+        self.root = self.root.modpow(&x_star, &self.n);
+    }
+
+    fn batch_add<'a>(&mut self, xs: impl IntoIterator<Item = &'a BigUint>) -> BigUint {
+        // begin our summation of the added elements
         let mut x_star = BigUint::one();
         for x in xs {
             x_star *= x;
@@ -147,15 +157,21 @@ impl BatchedAccumulator for Accumulator {
             self.set *= x;
         }
 
-        //temp clone our old root
+        // temp clone our old root
         let root_t = self.root.clone();
-        //calculate our new root after all the added elements
-        self.root = self.root.modpow(&x_star, &self.n); //Returns (self ^ exponent) % modulus.
-                                                        //create our proof for the procedure
+        // calculate our new root after all the added elements
+        self.root = self.root.modpow(&x_star, &self.n); // Returns (self ^ exponent) % modulus.
+                                                        // create our proof for the procedure
+
         proofs::ni_poe_prove(&x_star, &root_t, &self.root, &self.n)
     }
 
-    fn ver_batch_add(&self, w: &BigUint, root: &BigUint, xs: &[BigUint]) -> bool {
+    fn ver_batch_add(
+        &self,
+        w: &BigUint,
+        root: &BigUint,
+        xs: impl IntoIterator<Item = BigUint>,
+    ) -> bool {
         let mut x_star = BigUint::one();
         for x in xs {
             x_star *= x
@@ -164,11 +180,11 @@ impl BatchedAccumulator for Accumulator {
         proofs::ni_poe_verify(&x_star, root, &self.root, &w, &self.n)
     }
 
-    fn batch_del(&mut self, pairs: &[(BigUint, BigUint)]) -> Option<BigUint> {
-        if pairs.is_empty() {
-            return None;
-        }
-        let mut pairs = pairs.iter();
+    fn batch_del<'a>(
+        &mut self,
+        pairs: impl IntoIterator<Item = &'a (BigUint, BigUint)>,
+    ) -> Option<BigUint> {
+        let mut pairs = pairs.into_iter();
         let root_t = self.root.clone();
 
         let (x0, w0) = pairs.next().unwrap();
@@ -209,8 +225,9 @@ impl BatchedAccumulator for Accumulator {
     }
 
     #[inline]
-    fn create_all_mem_wit(&self, set: &[BigUint]) -> Vec<BigUint> {
-        root_factor(&self.g, &set, &self.n)
+    fn create_all_mem_wit<'a>(&self, set: impl IntoIterator<Item = &'a BigUint>) -> Vec<BigUint> {
+        let s = set.into_iter().collect::<Vec<_>>();
+        root_factor(&self.g, &s[..], &self.n)
     }
 
     fn agg_mem_wit(
@@ -264,7 +281,7 @@ impl BatchedAccumulator for Accumulator {
 
     fn ver_mem_x(&self, other: &BigUint, pi: &BigUint, x: &BigUint, y: &BigUint) -> bool {
         // assert x and y are coprime
-        let (q, _, _) = extended_gcd(x, y);
+        let q = x.gcd(y);
         if !q.is_one() {
             return false;
         }
@@ -290,7 +307,7 @@ impl BatchedAccumulator for Accumulator {
         let n = &self.n;
 
         // a, b <- Bezout(x, s_star)
-        let (_, a, b) = extended_gcd(x, &self.set);
+        let (_, a, b) = x.extended_gcd(&self.set);
 
         // d <- g^a
         let d = modpow_uint_int(g, &a, n).expect("invalid state");
@@ -301,7 +318,10 @@ impl BatchedAccumulator for Accumulator {
         let pi_d = proofs::ni_poke2_prove(b, &self.root, &v, n);
 
         // k <- g * v^-1
-        let k = (g * v.clone().mod_inverse(n).expect("invalid state")) % n;
+        let k = (g.to_bigint().unwrap() * (&v).mod_inverse(n).expect("invalid state"))
+            .into_biguint()
+            .unwrap()
+            % n;
 
         // pi_g <- NI-PoE(x, d, g * v^-1)
         let pi_g = proofs::ni_poe_prove(x, &d, &k, n);
@@ -326,7 +346,10 @@ impl BatchedAccumulator for Accumulator {
         }
 
         // verify NI-PoE
-        let k = (g * v.clone().mod_inverse(n).expect("invalid state")) % n;
+        let k = (g.to_bigint().unwrap() * v.clone().mod_inverse(n).expect("invalid state"))
+            .into_biguint()
+            .unwrap()
+            % n;
 
         if !proofs::ni_poe_verify(x, d, &k, pi_g, n) {
             return false;
@@ -341,8 +364,7 @@ mod tests {
     use super::*;
 
     use crate::group::RSAGroup;
-    use num_bigint::RandPrime;
-    use num_bigint::Sign;
+    use num_bigint::{IntoBigInt, RandPrime};
     use num_traits::FromPrimitive;
     use rand::SeedableRng;
     use rand_chacha::ChaChaRng;
@@ -450,11 +472,11 @@ mod tests {
         // A = g ^ set*
         let root = g.modpow(&s_star, &n);
 
-        let (_, a, b) = extended_gcd(&x, &s_star);
+        let (_, a, b) = (&x).extended_gcd(&s_star);
         println!("{} {} {} {}", &g, &a, &b, &n);
 
-        let u = BigInt::from_biguint(Sign::Plus, x.clone());
-        let v = BigInt::from_biguint(Sign::Plus, s_star);
+        let u = x.to_bigint().unwrap();
+        let v = s_star.into_bigint().unwrap();
         let lhs = a.clone() * &u;
         let rhs = b.clone() * &v;
         println!("> {} * {} + {} * {} == 1", &a, &u, &b, &v);
@@ -503,11 +525,15 @@ mod tests {
         let root = acc.state().clone();
         let xs = (0..size)
             .map(|_| rng.gen_prime(int_size_bits))
-            .collect::<Vec<_>>();
-        let w = acc.batch_add(&xs);
+            .collect::<Vec<BigUint>>();
+
+        let w = acc.batch_add(&xs[..]);
 
         // verify batch add
-        assert!(acc.ver_batch_add(&w, &root, &xs), "ver_batch_add failed");
+        assert!(
+            acc.ver_batch_add(&w, &root, xs.clone()),
+            "ver_batch_add failed"
+        );
 
         // delete with member
         let x = &xs[2];
@@ -570,20 +596,26 @@ mod tests {
         let xs = (0..size)
             .map(|_| rng.gen_prime(int_size_bits))
             .collect::<Vec<_>>();
-        let w = acc.batch_add(&xs);
+        let w = acc.batch_add(&xs[..]);
 
         // verify batch add
-        assert!(acc.ver_batch_add(&w, &root, &xs), "ver_batch_add failed");
+        assert!(
+            acc.ver_batch_add(&w, &root, xs.clone()),
+            "ver_batch_add failed"
+        );
 
         // batch add
         let root = acc.state().clone();
         let xs = (0..size)
             .map(|_| rng.gen_prime(int_size_bits))
             .collect::<Vec<_>>();
-        let w = acc.batch_add(&xs);
+        let w = acc.batch_add(&xs[..]);
 
         // verify batch add
-        assert!(acc.ver_batch_add(&w, &root, &xs), "ver_batch_add failed");
+        assert!(
+            acc.ver_batch_add(&w, &root, xs.clone()),
+            "ver_batch_add failed"
+        );
     }
 
     #[test]
@@ -635,7 +667,7 @@ mod tests {
                 let x = rng.gen_prime(128);
                 let y = rng.gen_prime(128);
 
-                assert!(extended_gcd(&x, &y).0.is_one(), "x, y must be coprime");
+                assert!(x.gcd(&y).is_one(), "x, y must be coprime");
 
                 acc.add(&x);
                 other.add(&y);

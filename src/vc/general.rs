@@ -3,6 +3,7 @@ use blake2::{Blake2b, Digest};
 use num_bigint::BigUint;
 use rand::rngs::OsRng;
 use rand::{CryptoRng, Rng};
+use rayon::prelude::*;
 
 use crate::traits::*;
 use crate::vc::BinaryVectorCommitment;
@@ -24,7 +25,7 @@ pub struct VectorCommitment<A: UniversalAccumulator + BatchedAccumulator> {
 }
 
 impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment for VectorCommitment<A> {
-    type Domain = BigUint;
+    type Domain = Vec<u8>;
     type Commitment = <BinaryVectorCommitment<A> as StaticVectorCommitment>::BatchCommitment;
     type BatchCommitment = <BinaryVectorCommitment<A> as StaticVectorCommitment>::BatchCommitment;
 
@@ -44,60 +45,83 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment for Ve
     // ms: [a, b, c]
     // a' = hash_binary(a), b' ..
     // vc[a'..., b'..., c'...]
-    fn commit(&mut self, ms: &[Self::Domain]) {
-        for m in ms {
-            let comm = hash_binary(&m, self.lambda).into_iter().collect::<Vec<_>>();
-            debug_assert!(comm.len() == self.lambda);
-            self.vc.commit(&comm);
-        }
+    fn commit(&mut self, ms: impl IntoIterator<Item = Self::Domain>) {
+        let lambda = self.lambda;
+        let comms = ms
+            .into_iter()
+            .map(|m| hash_binary(&m, lambda).into_iter())
+            .flatten();
+
+        self.vc.commit(comms);
     }
 
     fn open(&self, b: &Self::Domain, i: usize) -> Self::Commitment {
-        let comm = hash_binary(b, self.lambda).into_iter().collect::<Vec<_>>();
         let offset = i * self.lambda;
-        let is = (0..comm.len()).map(|j| offset + j).collect::<Vec<_>>();
 
-        self.vc.batch_open(&comm, &is)
+        let comm = hash_binary(b, self.lambda)
+            .into_iter()
+            .enumerate()
+            .map(|(j, b)| (b, offset + j));
+
+        self.vc.batch_open(comm)
     }
 
     fn verify(&self, b: &Self::Domain, i: usize, pi: &Self::Commitment) -> bool {
-        let comm = hash_binary(b, self.lambda).into_iter().collect::<Vec<_>>();
         let offset = i * self.lambda;
-        let is = (0..comm.len()).map(|j| offset + j).collect::<Vec<_>>();
 
-        self.vc.batch_verify(&comm, &is, pi)
+        let comm = hash_binary(b, self.lambda)
+            .into_iter()
+            .enumerate()
+            .map(|(j, b)| (b, offset + j));
+
+        self.vc.batch_verify(comm, pi)
     }
 
-    fn batch_open(&self, b: &[Self::Domain], is: &[usize]) -> Self::BatchCommitment {
-        debug_assert!(b.len() == is.len());
+    fn batch_open(
+        &self,
+        b: impl IntoIterator<Item = (Self::Domain, usize)>,
+    ) -> Self::BatchCommitment {
+        let lambda = self.lambda;
+        let comm = b
+            .into_iter()
+            .collect::<Vec<_>>()
+            .into_par_iter()
+            .map(|(el, i)| {
+                hash_binary(&el, lambda)
+                    .into_iter()
+                    .take(lambda)
+                    .enumerate()
+                    .map(|(j, b)| (b, i * lambda + j))
+                    .collect::<Vec<_>>()
+            })
+            .flatten()
+            .collect::<Vec<_>>();
 
-        let mut comm = Vec::with_capacity(self.lambda * b.len());
-        let mut comm_is = Vec::with_capacity(self.lambda * is.len());
-
-        for (el, i) in b.iter().zip(is) {
-            let c = hash_binary(el, self.lambda).into_iter().collect::<Vec<_>>();
-            comm.extend(&c);
-            let offset = i * self.lambda;
-            comm_is.extend((0..c.len()).map(|j| offset + j));
-        }
-
-        self.vc.batch_open(&comm, &comm_is)
+        self.vc.batch_open(comm)
     }
 
-    fn batch_verify(&self, b: &[Self::Domain], is: &[usize], pi: &Self::BatchCommitment) -> bool {
-        debug_assert!(b.len() == is.len());
+    fn batch_verify(
+        &self,
+        b: impl IntoIterator<Item = (Self::Domain, usize)>,
+        pi: &Self::BatchCommitment,
+    ) -> bool {
+        let lambda = self.lambda;
+        let comm = b
+            .into_iter()
+            .collect::<Vec<_>>()
+            .into_par_iter()
+            .map(|(el, i)| {
+                hash_binary(&el, lambda)
+                    .into_iter()
+                    .take(lambda)
+                    .enumerate()
+                    .map(|(j, b)| (b, i * lambda + j))
+                    .collect::<Vec<_>>()
+            })
+            .flatten()
+            .collect::<Vec<_>>();
 
-        let mut comm = Vec::with_capacity(self.lambda * b.len());
-        let mut comm_is = Vec::with_capacity(self.lambda * is.len());
-
-        for (el, i) in b.iter().zip(is) {
-            let c = hash_binary(el, self.lambda).into_iter().collect::<Vec<_>>();
-            comm.extend(&c);
-            let offset = i * self.lambda;
-            comm_is.extend((0..c.len()).map(|j| offset + j));
-        }
-
-        self.vc.batch_verify(&comm, &comm_is, pi)
+        self.vc.batch_verify(comm, pi)
     }
 
     fn state(&self) -> &BigUint {
@@ -123,11 +147,13 @@ impl<A: UniversalAccumulator + BatchedAccumulator> DynamicVectorCommitment for V
     }
 }
 
-fn hash_binary(m: &BigUint, lambda: usize) -> bitvec::BitVec<bitvec::BigEndian, u8> {
-    let bytes = &Blake2b::digest(&m.to_bytes_be())[..];
-    let len = ::std::cmp::min(bytes.len(), lambda / 8);
+fn hash_binary(bytes: &[u8], lambda: usize) -> bitvec::BitVec<bitvec::BigEndian, u8> {
+    let mut res: Vec<u8> = Blake2b::digest(bytes)[..].to_vec();
+    let byte_lambda = lambda / 8;
+    // let mut res = bytes;
+    res.resize(byte_lambda, 0u8);
 
-    bytes[..len].to_vec().into()
+    res.into()
 }
 
 #[cfg(test)]
@@ -147,8 +173,10 @@ mod tests {
 
         let mut vc = VectorCommitment::<Accumulator>::setup::<RSAGroup, _>(rng, lambda, n);
 
-        let val: Vec<BigUint> = (0..3).map(|_| rng.gen_biguint(16)).collect();
-        vc.commit(&val);
+        let val: Vec<_> = (0..3)
+            .map(|_| rng.gen_biguint(lambda).to_bytes_be())
+            .collect();
+        vc.commit(val.clone());
 
         for i in 0..3 {
             let comm = vc.open(&val[i], i);
@@ -158,21 +186,20 @@ mod tests {
 
     #[test]
     fn test_general_vc_batch() {
-        let lambda = 128;
+        let lambda = 256;
         let n = 1024;
         let rng = &mut ChaChaRng::from_seed([0u8; 32]);
 
         let mut vc = VectorCommitment::<Accumulator>::setup::<RSAGroup, _>(rng, lambda, n);
 
-        let val: Vec<BigUint> = (0..4).map(|_| rng.gen_biguint(32)).collect();
-        vc.commit(&val);
+        let val: Vec<_> = (0..4)
+            .map(|_| rng.gen_biguint(lambda).to_bytes_be())
+            .collect();
+        vc.commit(val.clone());
 
-        let committed = vec![val[1].clone(), val[3].clone()];
-        let comm = vc.batch_open(&committed, &[1, 3]);
-        assert!(
-            vc.batch_verify(&committed, &[1, 3], &comm),
-            "invalid commitment"
-        );
+        let committed = vec![(val[1].clone(), 1), (val[3].clone(), 3)];
+        let comm = vc.batch_open(committed.clone());
+        assert!(vc.batch_verify(committed, &comm), "invalid commitment");
     }
 
     #[test]
@@ -182,14 +209,16 @@ mod tests {
         let rng = &mut ChaChaRng::from_seed([0u8; 32]);
 
         let mut vc = VectorCommitment::<Accumulator>::setup::<RSAGroup, _>(rng, lambda, n);
-        let val: Vec<BigUint> = (0..4).map(|_| rng.gen_biguint(32)).collect();
+        let val: Vec<_> = (0..4)
+            .map(|_| rng.gen_biguint(lambda).to_bytes_be())
+            .collect();
 
-        vc.commit(&val);
+        vc.commit(val.clone());
 
         let comm = vc.open(&val[2], 2);
         assert!(vc.verify(&val[2], 2, &comm), "invalid commitment");
 
-        let new_val = rng.gen_biguint(128);
+        let new_val = rng.gen_biguint(128).to_bytes_be();
         vc.update(&new_val, &val[2], 2);
 
         // ensure old commitment fails now

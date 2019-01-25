@@ -3,7 +3,7 @@ use num_bigint::{BigInt, BigUint};
 use rand::CryptoRng;
 use rand::Rng;
 
-pub trait StaticAccumulator {
+pub trait StaticAccumulator: ::std::fmt::Debug + Clone {
     /// Setup generates a group of unknown order and initializes the group
     /// with a generator of that group.
     fn setup<T, R>(rng: &mut R, int_size_bits: usize) -> Self
@@ -39,13 +39,20 @@ pub trait UniversalAccumulator: DynamicAccumulator {
 }
 
 pub trait BatchedAccumulator: StaticAccumulator {
+    /// Batch add, without creating a proof
+    /// Given a list of new elements, adds them.
+    fn batch_add_no_proof<'a>(&mut self, xs: impl IntoIterator<Item = &'a BigUint>);
+
     /// Batch add.
     /// Given a list of new elements, adds them.
-    fn batch_add(&mut self, xs: &[BigUint]) -> BigUint;
+    fn batch_add<'a>(&mut self, xs: impl IntoIterator<Item = &'a BigUint>) -> BigUint;
 
     /// Batch delete.
     /// Given a list of witnesses and members, deletes all of them.
-    fn batch_del(&mut self, pairs: &[(BigUint, BigUint)]) -> Option<BigUint>;
+    fn batch_del<'a>(
+        &mut self,
+        pairs: impl IntoIterator<Item = &'a (BigUint, BigUint)>,
+    ) -> Option<BigUint>;
 
     /// Delete with member witness.
     /// Deletes a single element, given the element and a wittness for it.
@@ -54,14 +61,19 @@ pub trait BatchedAccumulator: StaticAccumulator {
 
     /// Create membership witnesses for all elements in `s`.
     /// Needs to be passed in, as we don't hold onto the whole set in the accumulator currently.
-    fn create_all_mem_wit(&self, s: &[BigUint]) -> Vec<BigUint>;
+    fn create_all_mem_wit<'a>(&self, s: impl IntoIterator<Item = &'a BigUint>) -> Vec<BigUint>;
 
     /// Verify Batch Add.
     /// Given the proof `w` from [batch_add] and the list of members `xs`,
     /// and the previous state of the accumulator `a_t` this verifies if the `add` was done correctly.
     ///
     /// Note: This is not explicitly defined in the paper, but here for convenience.
-    fn ver_batch_add(&self, w: &BigUint, a_t: &BigUint, xs: &[BigUint]) -> bool;
+    fn ver_batch_add(
+        &self,
+        w: &BigUint,
+        a_t: &BigUint,
+        xs: impl IntoIterator<Item = BigUint>,
+    ) -> bool;
 
     /// Verify Batch Del
     /// Given the proof `w` from [batch_del] and the list of members `xs`,
@@ -116,7 +128,7 @@ pub trait BatchedAccumulator: StaticAccumulator {
 }
 
 pub trait StaticVectorCommitment {
-    type Domain;
+    type Domain: Send;
     type Commitment;
     type BatchCommitment;
 
@@ -125,15 +137,22 @@ pub trait StaticVectorCommitment {
         T: PrimeGroup,
         R: CryptoRng + Rng;
 
-    fn commit(&mut self, m: &[Self::Domain]);
+    fn commit(&mut self, m: impl IntoIterator<Item = Self::Domain>);
 
     fn open(&self, b: &Self::Domain, i: usize) -> Self::Commitment;
 
     fn verify(&self, b: &Self::Domain, i: usize, pi: &Self::Commitment) -> bool;
 
-    fn batch_open(&self, b: &[Self::Domain], i: &[usize]) -> Self::BatchCommitment;
+    fn batch_open(
+        &self,
+        b: impl IntoIterator<Item = (Self::Domain, usize)>,
+    ) -> Self::BatchCommitment;
 
-    fn batch_verify(&self, b: &[Self::Domain], i: &[usize], pi: &Self::BatchCommitment) -> bool;
+    fn batch_verify(
+        &self,
+        b: impl IntoIterator<Item = (Self::Domain, usize)>,
+        pi: &Self::BatchCommitment,
+    ) -> bool;
 
     fn state(&self) -> &BigUint;
 }
