@@ -22,6 +22,8 @@ generic-array = "0.12.0"
 byteorder = "1.2.7"
 bitvec = "0.9.0"
 rayon = "1.0.3"
+lazy_static = "1.2.0"
+cached = "0.8.0"
 
 [dependencies.serde]
 optional = true

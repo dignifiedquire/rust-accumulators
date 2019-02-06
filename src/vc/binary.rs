@@ -1,12 +1,22 @@
-use crate::hash::hash_prime;
-use crate::traits::*;
-use blake2::Blake2b;
-use byteorder::{BigEndian, ByteOrder};
+use std::sync::Arc;
+
+// use blake2::Blake2b;
+// use byteorder::{BigEndian, ByteOrder};
+use cached::cached;
+use lazy_static::lazy_static;
+use num_bigint::prime::probably_prime;
 use num_bigint::{BigInt, BigUint};
-use num_traits::{One, Zero};
+use num_traits::{FromPrimitive, One, Zero};
 use rand::CryptoRng;
 use rand::Rng;
 use rayon::prelude::*;
+
+// use crate::hash::hash_prime;
+use crate::traits::*;
+
+lazy_static! {
+    static ref BIG_1: BigUint = BigUint::one();
+}
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
@@ -73,8 +83,15 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
             .into_par_iter()
             .map(|(j, _)| map_i_to_p_i(pos + j))
             .collect::<Vec<_>>();
+        let ps: Vec<&BigUint> = primes
+            .iter()
+            .map(|v| {
+                let a: &BigUint = &v;
+                a
+            })
+            .collect();
 
-        self.acc.batch_add_no_proof(&primes[..]);
+        self.acc.batch_add_no_proof(ps);
         self.pos += count;
     }
 
@@ -111,11 +128,32 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
     ) -> Self::BatchCommitment {
         let (ones, zeros): (Vec<_>, Vec<_>) = b.into_iter().partition(|(b, _)| *b);
 
-        let p_ones: BigUint = ones.into_par_iter().map(|(_, i)| map_i_to_p_i(i)).product();
+        let p_ones: BigUint = ones
+            .into_par_iter()
+            .map(|(_, i)| map_i_to_p_i(i))
+            .fold(BigUint::one, |mut acc, v| {
+                let a: &BigUint = &v;
+                acc *= a;
+                acc
+            })
+            .reduce(BigUint::one, |mut acc, v| {
+                acc *= v;
+                acc
+            });
+        // .product();
         let p_zeros: BigUint = zeros
             .into_par_iter()
             .map(|(_, i)| map_i_to_p_i(i))
-            .product();
+            .fold(BigUint::one, |mut acc, v| {
+                let a: &BigUint = &v;
+                acc *= a;
+                acc
+            })
+            .reduce(BigUint::one, |mut acc, v| {
+                acc *= v;
+                acc
+            });
+        // .product();
 
         let pi_i = if p_ones.is_one() {
             (BigUint::zero(), BigUint::zero())
@@ -144,11 +182,33 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
     ) -> bool {
         let (ones, zeros): (Vec<_>, Vec<_>) = b.into_iter().partition(|(b, _)| *b);
 
-        let p_ones: BigUint = ones.into_par_iter().map(|(_, i)| map_i_to_p_i(i)).product();
+        let p_ones: BigUint = ones
+            .into_par_iter()
+            .map(|(_, i)| map_i_to_p_i(i))
+            .fold(BigUint::one, |mut acc, v| {
+                let a: &BigUint = &v;
+                acc *= a;
+                acc
+            })
+            .reduce(BigUint::one, |mut acc, v| {
+                acc *= v;
+                acc
+            });
+
+        // .product();
         let p_zeros: BigUint = zeros
             .into_par_iter()
             .map(|(_, i)| map_i_to_p_i(i))
-            .product();
+            .fold(BigUint::one, |mut acc, v| {
+                let a: &BigUint = &v;
+                acc *= a;
+                acc
+            })
+            .reduce(BigUint::one, |mut acc, v| {
+                acc *= v;
+                acc
+            });
+        // .product();
 
         if !p_ones.is_one() && !self.acc.ver_mem_star(&p_ones, &pi.0) {
             return false;
@@ -180,12 +240,26 @@ impl<A: UniversalAccumulator + BatchedAccumulator> DynamicVectorCommitment
     }
 }
 
-fn map_i_to_p_i(i: usize) -> BigUint {
-    let mut to_hash = [0u8; 8];
-    BigEndian::write_u64(&mut to_hash, i as u64);
-    hash_prime::<_, Blake2b>(&to_hash)
-}
+// fn map_i_to_p_i(i: u64) -> BigUint {
+//     let mut to_hash = [0u8; 8];
+//     BigEndian::write_u64(&mut to_hash, i);
+//     hash_prime::<_, Blake2b>(&to_hash)
+// }
 
+cached! {
+    PRIMES_PI;
+    fn map_i_to_p_i(i: usize) -> Arc<BigUint> = {
+        // This uses an Arc, to avoid cloning the actual BigUint when returning from the cache.
+        let n = 2 * (i as u64 + 2) * ((i + 2) as f64).log2().powi(2) as u64;
+
+        let mut y = BigUint::from_u64(n).unwrap();;
+        while !probably_prime(&y, 20) {
+            y += &*BIG_1;
+        }
+
+        Arc::new(y)
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;

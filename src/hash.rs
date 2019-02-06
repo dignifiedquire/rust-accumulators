@@ -38,7 +38,7 @@ pub fn hash_group<O: ArrayLength<u8>, D: Digest<OutputSize = O>>(
 /// be prevented by additionally hashing in the current state of the accumulator.
 /// H(nonce || DATA || CURRENT_ROOT) = l with l ∈ Primes(λ).
 /// We encode the given data as BIGENDIAN and then hash the concatination of these bytes.
-/// We denote that hashsing the root is an optional parameter
+/// We denote that hashsing the root is an optional parameter.
 pub fn nonce_hash<O: ArrayLength<u8>, D: Digest<OutputSize = O>>(
     nonce: u16,
     input: &[u8],
@@ -63,7 +63,7 @@ pub fn nonce_hash<O: ArrayLength<u8>, D: Digest<OutputSize = O>>(
     }
 }
 
-///Verify if given BIGUINT is a prime, complements the nonce_hash() function
+/// Verify if a given `p` is a prime, complements the `nonce_hash()` function.
 pub fn verify_nonce_hash(p: &BigUint) -> bool {
     probably_prime(p, 20)
 }

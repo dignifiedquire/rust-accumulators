@@ -23,6 +23,17 @@ pub struct VectorCommitment<A: UniversalAccumulator + BatchedAccumulator> {
     n: usize,
     vc: BinaryVectorCommitment<A>,
 }
+impl<A: UniversalAccumulator + BatchedAccumulator> VectorCommitment<A> {
+    pub fn commit_refs<'a>(&mut self, ms: impl IntoIterator<Item = &'a [u8]>) {
+        let lambda = self.lambda;
+        let comms = ms
+            .into_iter()
+            .map(|m| hash_binary(m, lambda).into_iter())
+            .flatten();
+
+        self.vc.commit(comms);
+    }
+}
 
 impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment for VectorCommitment<A> {
     type Domain = Vec<u8>;
