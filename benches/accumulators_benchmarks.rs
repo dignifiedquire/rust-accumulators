@@ -1,4 +1,5 @@
 extern crate accumulators;
+#[cfg(feature = "classgroup")]
 extern crate classgroup;
 extern crate num_bigint;
 extern crate num_integer;
@@ -16,9 +17,9 @@ use criterion::Criterion;
 mod rsa_benches {
     use super::*;
     use accumulators::group::RSAGroup;
-    use accumulators::math::prime_rand::RandPrime;
     use accumulators::traits::{BatchedAccumulator, StaticAccumulator};
     use accumulators::Accumulator;
+    use num_bigint::RandPrime;
     use rand::SeedableRng;
     use rand_chacha::ChaChaRng;
 
@@ -91,8 +92,23 @@ mod rsa_benches {
 
 }
 
+#[cfg(not(feature = "classgroup"))]
 mod classgroup_benches {
     use super::*;
+
+    fn none(_c: &mut Criterion) {}
+
+    criterion_group! {
+        name = classgroup_benches;
+        config = Criterion::default();
+        targets = none
+    }
+}
+
+#[cfg(feature = "classgroup")]
+mod classgroup_benches {
+    use super::*;
+
     use classgroup::{gmp_classgroup::GmpClassGroup, ClassGroup};
     type Mpz = <GmpClassGroup as ClassGroup>::BigNum;
     use accumulators::group::create_discriminant;

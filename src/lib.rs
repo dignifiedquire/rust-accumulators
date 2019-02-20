@@ -18,3 +18,7 @@ pub mod math;
 pub mod proofs;
 pub mod traits;
 pub mod vc;
+
+pub use self::accumulator::*;
+pub use self::traits::*;
+pub use self::vc::*;

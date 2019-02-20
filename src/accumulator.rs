@@ -1,4 +1,5 @@
-use num_bigint::{BigInt, BigUint};
+use num_bigint::traits::{ExtendedGcd, ModInverse};
+use num_bigint::{BigInt, BigUint, IntoBigUint};
 use num_integer::Integer;
 use num_traits::{One, Zero};
 use rand::CryptoRng;
@@ -7,8 +8,6 @@ use rand::Rng;
 use crate::math::{modpow_uint_int, root_factor, shamir_trick};
 use crate::proofs;
 use crate::traits::*;
-use num_bigint::algorithms::extended_gcd;
-use num_bigint::traits::ModInverse;
 
 // All accumulated values are small odd primes.
 // Arbitrary data values can be hashed to small primes,
@@ -118,7 +117,7 @@ impl UniversalAccumulator for Accumulator {
         let s_star = &self.set;
 
         // a, b <- Bezout(x, set*)
-        let (_, a, b) = extended_gcd(x, s_star);
+        let (_, a, b) = x.extended_gcd(s_star);
         let d = modpow_uint_int(&self.g, &a, &self.n).expect("prime");
 
         (d, b)
@@ -264,7 +263,7 @@ impl BatchedAccumulator for Accumulator {
 
     fn ver_mem_x(&self, other: &BigUint, pi: &BigUint, x: &BigUint, y: &BigUint) -> bool {
         // assert x and y are coprime
-        let (q, _, _) = extended_gcd(x, y);
+        let q = x.gcd(y);
         if !q.is_one() {
             return false;
         }
@@ -290,7 +289,7 @@ impl BatchedAccumulator for Accumulator {
         let n = &self.n;
 
         // a, b <- Bezout(x, s_star)
-        let (_, a, b) = extended_gcd(x, &self.set);
+        let (_, a, b) = x.extended_gcd(&self.set);
 
         // d <- g^a
         let d = modpow_uint_int(g, &a, n).expect("invalid state");
@@ -301,7 +300,13 @@ impl BatchedAccumulator for Accumulator {
         let pi_d = proofs::ni_poke2_prove(b, &self.root, &v, n);
 
         // k <- g * v^-1
-        let k = (g * v.clone().mod_inverse(n).expect("invalid state")) % n;
+        let k = (g * v
+            .clone()
+            .mod_inverse(n)
+            .expect("invalid state")
+            .into_biguint()
+            .unwrap())
+            % n;
 
         // pi_g <- NI-PoE(x, d, g * v^-1)
         let pi_g = proofs::ni_poe_prove(x, &d, &k, n);
@@ -326,7 +331,13 @@ impl BatchedAccumulator for Accumulator {
         }
 
         // verify NI-PoE
-        let k = (g * v.clone().mod_inverse(n).expect("invalid state")) % n;
+        let k = (g * v
+            .clone()
+            .mod_inverse(n)
+            .expect("invalid state")
+            .into_biguint()
+            .unwrap())
+            % n;
 
         if !proofs::ni_poe_verify(x, d, &k, pi_g, n) {
             return false;
@@ -450,7 +461,7 @@ mod tests {
         // A = g ^ set*
         let root = g.modpow(&s_star, &n);
 
-        let (_, a, b) = extended_gcd(&x, &s_star);
+        let (_, a, b) = (&x).extended_gcd(&s_star);
         println!("{} {} {} {}", &g, &a, &b, &n);
 
         let u = BigInt::from_biguint(Sign::Plus, x.clone());
@@ -635,7 +646,7 @@ mod tests {
                 let x = rng.gen_prime(128);
                 let y = rng.gen_prime(128);
 
-                assert!(extended_gcd(&x, &y).0.is_one(), "x, y must be coprime");
+                assert!(x.gcd(&y).is_one(), "x, y must be coprime");
 
                 acc.add(&x);
                 other.add(&y);

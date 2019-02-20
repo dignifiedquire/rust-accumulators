@@ -1,7 +1,6 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::many_single_char_names))]
 
-use num_bigint::algorithms::extended_gcd;
-use num_bigint::traits::ModInverse;
+use num_bigint::traits::{ExtendedGcd, ModInverse};
 use num_bigint::{BigInt, BigUint, Sign};
 use num_integer::Integer;
 use num_traits::{One, Signed, Zero};
@@ -65,7 +64,7 @@ pub fn shamir_trick(
     }
 
     // a, b <- Bezout(x, y)
-    let (_, a, b) = extended_gcd(x, y);
+    let (_, a, b) = x.extended_gcd(y);
 
     let l = modpow_uint_int(&root_x, &b, n);
     let r = modpow_uint_int(&root_y, &a, n);
