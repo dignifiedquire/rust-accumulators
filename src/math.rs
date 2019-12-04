@@ -64,7 +64,8 @@ pub fn shamir_trick(
     }
 
     // a, b <- Bezout(x, y)
-    let (_, a, b) = x.extended_gcd(y);
+    //let (_, a, b) = x.extended_gcd(y);
+    let (_, a, b) = num_bigint::traits::ExtendedGcd::extended_gcd(x, y);
 
     let l = modpow_uint_int(&root_x, &b, n);
     let r = modpow_uint_int(&root_y, &a, n);

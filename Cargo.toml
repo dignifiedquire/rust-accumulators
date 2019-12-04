@@ -9,7 +9,7 @@ repository = "https://github.com/dignifiedquire/rust-accumulators"
 keywords = []
 
 [dependencies]
-num-bigint = { version = "0.3", package = "num-bigint-dig", features = ["rand", "i128", "u64_digit", "serde", "prime"] }
+num-bigint = { version = "0.5", package = "num-bigint-dig", features = ["rand", "i128", "u64_digit", "serde", "prime"] }
 num-traits = "^0.2.6"
 num-integer = "0.1.39"
 num-iter = "0.1.37"
