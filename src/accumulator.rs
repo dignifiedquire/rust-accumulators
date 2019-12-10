@@ -645,11 +645,25 @@ mod tests {
             // MemWitX
             {
                 let mut acc = Accumulator::setup::<RSAGroup, _>(rng, int_size_bits);
-                let mut other = acc.clone();
+                let mut other = acc.clone(); // should use the same `n` and `g`.
+                //let mut other = Accumulator::setup::<RSAGroup, _>(rng, int_size_bits);
                 let x = rng.gen_prime(128);
                 let y = rng.gen_prime(128);
 
                 assert!(x.gcd(&y).is_one(), "x, y must be coprime");
+                // regular add
+                let xs = (0..5)
+                    .map(|_| rng.gen_prime(128))
+                    .collect::<Vec<_>>();
+                for x in &xs {
+                    acc.add(x);
+                }
+                let ys = (0..5)
+                    .map(|_| rng.gen_prime(128))
+                    .collect::<Vec<_>>();
+                for y in &ys {
+                    other.add(y);
+                }
 
                 acc.add(&x);
                 other.add(&y);
