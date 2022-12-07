@@ -64,10 +64,10 @@ pub fn shamir_trick(
     }
 
     // a, b <- Bezout(x, y)
-    let (_, a, b) = x.extended_gcd(y);
+    let (_, a, b) = ExtendedGcd::extended_gcd(x, y);
 
-    let l = modpow_uint_int(&root_x, &b, n);
-    let r = modpow_uint_int(&root_y, &a, n);
+    let l = modpow_uint_int(root_x, &b, n);
+    let r = modpow_uint_int(root_y, &a, n);
 
     if let Some(l) = l {
         if let Some(r) = r {
@@ -175,7 +175,7 @@ mod tests {
         for _ in 0..10 {
             let n = rng.gen_biguint(64);
             let g = rng.gen_biguint(64);
-            let m: usize = rng.gen_range(1, 128);
+            let m: usize = rng.gen_range(1..128);
 
             let x = (0..m).map(|_| rng.gen_biguint(64)).collect::<Vec<_>>();
 
@@ -231,5 +231,4 @@ mod tests {
             assert_eq!(&root.clone().modpow(&(x.clone() * &y), &n), &a);
         }
     }
-
 }

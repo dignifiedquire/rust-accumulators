@@ -1,6 +1,6 @@
 use crate::hash::hash_prime;
 use crate::traits::*;
-use blake2::Blake2b;
+use blake2::Blake2b512;
 use byteorder::{BigEndian, ByteOrder};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Zero};
@@ -86,7 +86,7 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment
         } else {
             match pi {
                 Commitment::Mem(_) => false,
-                Commitment::NonMem(v) => self.acc.ver_non_mem(&v, &p_i),
+                Commitment::NonMem(v) => self.acc.ver_non_mem(v, &p_i),
             }
         }
     }
@@ -194,7 +194,7 @@ impl<A: UniversalAccumulator + BatchedAccumulator> DynamicVectorCommitment
 fn map_i_to_p_i(i: usize) -> BigUint {
     let mut to_hash = [0u8; 8];
     BigEndian::write_u64(&mut to_hash, i as u64);
-    hash_prime::<_, Blake2b>(&to_hash)
+    hash_prime::<_, Blake2b512>(&to_hash)
 }
 
 #[cfg(test)]

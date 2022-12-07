@@ -1,5 +1,5 @@
-use num_bigint::traits::{ExtendedGcd, ModInverse};
-use num_bigint::{BigInt, BigUint, IntoBigUint};
+use num_bigint::traits::ModInverse;
+use num_bigint::{BigInt, BigUint, ExtendedGcd, IntoBigUint};
 use num_integer::Integer;
 use num_traits::{One, Zero};
 use rand::CryptoRng;
@@ -117,7 +117,7 @@ impl UniversalAccumulator for Accumulator {
         let s_star = &self.set;
 
         // a, b <- Bezout(x, set*)
-        let (_, a, b) = x.extended_gcd(s_star);
+        let (_, a, b) = ExtendedGcd::extended_gcd(x, s_star);
         let d = modpow_uint_int(&self.g, &a, &self.n).expect("prime");
 
         (d, b)
@@ -160,7 +160,7 @@ impl BatchedAccumulator for Accumulator {
             x_star *= x
         }
 
-        proofs::ni_poe_verify(&x_star, root, &self.root, &w, &self.n)
+        proofs::ni_poe_verify(&x_star, root, &self.root, w, &self.n)
     }
 
     fn batch_del(&mut self, pairs: &[(BigUint, BigUint)]) -> Option<BigUint> {
@@ -192,7 +192,7 @@ impl BatchedAccumulator for Accumulator {
             x_star *= x
         }
 
-        proofs::ni_poe_verify(&x_star, &self.root, root, &w, &self.n)
+        proofs::ni_poe_verify(&x_star, &self.root, root, w, &self.n)
     }
 
     fn del_w_mem(&mut self, w: &BigUint, x: &BigUint) -> Option<()> {
@@ -209,7 +209,7 @@ impl BatchedAccumulator for Accumulator {
 
     #[inline]
     fn create_all_mem_wit(&self, set: &[BigUint]) -> Vec<BigUint> {
-        root_factor(&self.g, &set, &self.n)
+        root_factor(&self.g, set, &self.n)
     }
 
     fn agg_mem_wit(
@@ -289,7 +289,8 @@ impl BatchedAccumulator for Accumulator {
         let n = &self.n;
 
         // a, b <- Bezout(x, s_star)
-        let (_, a, b) = x.extended_gcd(&self.set);
+
+        let (_, a, b) = ExtendedGcd::extended_gcd(x, &self.set);
 
         // d <- g^a
         let d = modpow_uint_int(g, &a, n).expect("invalid state");
@@ -326,7 +327,7 @@ impl BatchedAccumulator for Accumulator {
         let (d, v, pi_d, pi_g) = pi;
 
         // verify NI-PoKE2
-        if !proofs::ni_poke2_verify(&self.root, &v, pi_d, n) {
+        if !proofs::ni_poke2_verify(&self.root, v, pi_d, n) {
             return false;
         }
 
@@ -461,7 +462,7 @@ mod tests {
         // A = g ^ set*
         let root = g.modpow(&s_star, &n);
 
-        let (_, a, b) = (&x).extended_gcd(&s_star);
+        let (_, a, b) = ExtendedGcd::extended_gcd(&x, &s_star);
         println!("{} {} {} {}", &g, &a, &b, &n);
 
         let u = BigInt::from_biguint(Sign::Plus, x.clone());

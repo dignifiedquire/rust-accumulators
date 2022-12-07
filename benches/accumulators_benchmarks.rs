@@ -89,7 +89,6 @@ mod rsa_benches {
             bench_batch_add_1,
             bench_ver_batch_add_1,
     }
-
 }
 
 #[cfg(not(feature = "classgroup"))]

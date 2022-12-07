@@ -9,17 +9,17 @@ repository = "https://github.com/dignifiedquire/rust-accumulators"
 keywords = []
 
 [dependencies]
-num-bigint = { version = "0.3", package = "num-bigint-dig", features = ["rand", "i128", "u64_digit", "serde", "prime"] }
+num-bigint = { version = "0.8", package = "num-bigint-dig", features = ["rand", "i128", "u64_digit", "serde", "prime"] }
 num-traits = "^0.2.6"
 num-integer = "0.1.39"
 num-iter = "0.1.37"
-rand = "0.6"
+rand = "0.8"
 failure = "0.1"
 failure_derive = "0.1"
-blake2 = "0.8.0"
-generic-array = "0.12.0"
+blake2 = "0.10"
+generic-array = "0.14"
 byteorder = "1.2.7"
-bitvec = "0.9.0"
+bitvec = "1"
 
 [dependencies.serde]
 optional = true
@@ -35,7 +35,7 @@ git = "https://github.com/stichtingorganism/classygroup"
 
 [dev-dependencies]
 criterion = "0.2"
-rand_chacha = "0.1"
+rand_chacha = "0.3"
 
 
 [[bench]]

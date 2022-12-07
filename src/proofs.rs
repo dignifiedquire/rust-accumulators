@@ -1,6 +1,6 @@
 use crate::hash::{hash_group, hash_prime};
 use crate::math::modpow_uint_int;
-use blake2::{Blake2b, Digest};
+use blake2::{Blake2b512, Digest};
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 
@@ -23,7 +23,7 @@ pub fn ni_poe_prove(x: &BigUint, u: &BigUint, w: &BigUint, n: &BigUint) -> Expon
     to_hash.extend(&u.to_bytes_be());
     to_hash.extend(&w.to_bytes_be());
 
-    let l = hash_prime::<_, Blake2b>(&to_hash);
+    let l = hash_prime::<_, Blake2b512>(&to_hash);
 
     // q <- floor(x/l)
     let q = x.div_floor(&l);
@@ -47,13 +47,13 @@ pub fn ni_poe_verify(
     to_hash.extend(&u.to_bytes_be());
     to_hash.extend(&w.to_bytes_be());
 
-    let l = hash_prime::<_, Blake2b>(&to_hash);
+    let l = hash_prime::<_, Blake2b512>(&to_hash);
 
     // r <- x mod l
     let r = x.mod_floor(&l);
 
     // Q^l u^r == w
-    &((q.modpow(&l, &n) * &u.modpow(&r, &n)) % n) == w
+    &((q.modpow(&l, n) * &u.modpow(&r, n)) % n) == w
 }
 
 //proof of knowledge of exponent, i.e. a proof that a computationally bounded prover knows the discrete logarithm between two elements in a group of unknown order. The proof is succinct in that the proof size and verification time is independent of the size of the discrete-log.
@@ -74,18 +74,18 @@ pub fn ni_poke2_prove(
     // g <- H_G(u, w)
     let mut to_hash = u.to_bytes_be();
     to_hash.extend(&w.to_bytes_be());
-    let g = hash_group::<_, Blake2b>(&to_hash, n);
+    let g = hash_group::<_, Blake2b512>(&to_hash, n);
 
     // z = g^x
     let z = modpow_uint_int(&g, &x, n).expect("invalid state");
 
     // l <- H_prime(u, w, z)
     to_hash.extend(&z.to_bytes_be());
-    let l: BigInt = hash_prime::<_, Blake2b>(&to_hash).into();
+    let l: BigInt = hash_prime::<_, Blake2b512>(&to_hash).into();
 
     // alpha = H(u, w, z, l)
     to_hash.extend(&l.to_bytes_be().1);
-    let alpha = BigUint::from_bytes_be(&Blake2b::digest(&to_hash)[..]);
+    let alpha = BigUint::from_bytes_be(&Blake2b512::digest(&to_hash)[..]);
 
     // q <- floor(x/l)
     // r <- x % l
@@ -112,19 +112,19 @@ pub fn ni_poke2_verify(
     // g <- H_G(u, w)
     let mut to_hash = u.to_bytes_be();
     to_hash.extend(&w.to_bytes_be());
-    let g = hash_group::<_, Blake2b>(&to_hash, n);
+    let g = hash_group::<_, Blake2b512>(&to_hash, n);
 
     // l <- H_prime(u, w, z)
     to_hash.extend(&z.to_bytes_be());
-    let l = hash_prime::<_, Blake2b>(&to_hash);
+    let l = hash_prime::<_, Blake2b512>(&to_hash);
 
     // alpha = H(u, w, z, l)
     to_hash.extend(&l.to_bytes_be());
-    let alpha = BigUint::from_bytes_be(&Blake2b::digest(&to_hash)[..]);
+    let alpha = BigUint::from_bytes_be(&Blake2b512::digest(&to_hash)[..]);
 
     // Q^l(ug^alpha)^r
     let lhs: BigInt = ((q_big.modpow(&l, n)
-        * modpow_uint_int(&(u * &g.modpow(&alpha, n)), &r, n).expect("invalid state"))
+        * modpow_uint_int(&(u * &g.modpow(&alpha, n)), r, n).expect("invalid state"))
         % n)
         .into();
 

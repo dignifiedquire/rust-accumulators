@@ -50,8 +50,8 @@ pub fn nonce_hash<O: ArrayLength<u8>, D: Digest<OutputSize = O>>(
     //input
     vec.extend_from_slice(input);
 
-    if root.is_some() {
-        vec.append(&mut root.unwrap().to_bytes_be());
+    if let Some(root) = root {
+        vec.append(&mut root.to_bytes_be());
     }
 
     let p = BigUint::from_bytes_be(&D::digest(vec.as_slice()));
@@ -72,7 +72,7 @@ pub fn verify_nonce_hash(p: &BigUint) -> bool {
 mod tests {
     use super::*;
 
-    use blake2::Blake2b;
+    use blake2::Blake2b512;
     use num_bigint::RandBigInt;
     use rand::{thread_rng, Rng};
 
@@ -84,7 +84,7 @@ mod tests {
             let mut val = vec![0u8; i * 32];
             rng.fill(&mut val[..]);
 
-            let h = hash_prime::<_, Blake2b>(&val);
+            let h = hash_prime::<_, Blake2b512>(&val);
             assert!(probably_prime(&h, 20));
         }
     }
@@ -98,7 +98,7 @@ mod tests {
             rng.fill(&mut val[..]);
             let n = rng.gen_biguint(1024);
 
-            let h = hash_group::<_, Blake2b>(&val, &n);
+            let h = hash_group::<_, Blake2b512>(&val, &n);
             assert!(h <= n);
         }
     }
@@ -112,11 +112,11 @@ mod tests {
             rng.fill(&mut val[..]);
             let _n = rng.gen_biguint(1024);
 
-            let mut h = nonce_hash::<_, Blake2b>(nonce, &val, None);
+            let mut h = nonce_hash::<_, Blake2b512>(nonce, &val, None);
 
             while h == None {
                 nonce = nonce + 1;
-                h = nonce_hash::<_, Blake2b>(nonce, &val, None);
+                h = nonce_hash::<_, Blake2b512>(nonce, &val, None);
             }
 
             assert!(verify_nonce_hash(&h.unwrap()));

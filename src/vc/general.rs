@@ -1,5 +1,5 @@
-use bitvec;
-use blake2::{Blake2b, Digest};
+use bitvec::prelude::*;
+use blake2::{Blake2b512, Digest};
 use num_bigint::BigUint;
 use rand::rngs::OsRng;
 use rand::{CryptoRng, Rng};
@@ -11,8 +11,8 @@ pub fn create_vector_commitment<A: UniversalAccumulator + BatchedAccumulator, G:
     lambda: usize,
     n: usize,
 ) -> VectorCommitment<A> {
-    let rng = &mut OsRng::new().expect("no secure randomness available");
-    VectorCommitment::<A>::setup::<G, _>(rng, lambda, n)
+    let mut rng = OsRng;
+    VectorCommitment::<A>::setup::<G, _>(&mut rng, lambda, n)
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -46,7 +46,7 @@ impl<A: UniversalAccumulator + BatchedAccumulator> StaticVectorCommitment for Ve
     // vc[a'..., b'..., c'...]
     fn commit(&mut self, ms: &[Self::Domain]) {
         for m in ms {
-            let comm = hash_binary(&m, self.lambda).into_iter().collect::<Vec<_>>();
+            let comm = hash_binary(m, self.lambda).into_iter().collect::<Vec<_>>();
             debug_assert!(comm.len() == self.lambda);
             self.vc.commit(&comm);
         }
@@ -123,11 +123,11 @@ impl<A: UniversalAccumulator + BatchedAccumulator> DynamicVectorCommitment for V
     }
 }
 
-fn hash_binary(m: &BigUint, lambda: usize) -> bitvec::BitVec<bitvec::BigEndian, u8> {
-    let bytes = &Blake2b::digest(&m.to_bytes_be())[..];
-    let len = ::std::cmp::min(bytes.len(), lambda / 8);
+fn hash_binary(m: &BigUint, lambda: usize) -> BitVec<u8, Msb0> {
+    let bytes = Blake2b512::digest(&m.to_bytes_be());
+    let len = std::cmp::min(bytes.len(), lambda / 8);
 
-    bytes[..len].to_vec().into()
+    BitVec::from_slice(&bytes[..len])
 }
 
 #[cfg(test)]
